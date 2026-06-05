@@ -23,7 +23,7 @@ function getMsalInstance() {
   const msalConfig = {
     auth: {
       clientId:    AZURE_CONFIG.clientId,
-      authority:   `https://login.microsoftonline.com/${AZURE_CONFIG.tenantId}`,
+      authority:   "https://login.microsoftonline.com/common",
       redirectUri: AZURE_CONFIG.redirectUri,
     },
     cache: {
