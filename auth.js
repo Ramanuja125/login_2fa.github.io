@@ -1,5 +1,5 @@
 /* ============================================
-   auth.js — Firebase Authentication + Form Helpers
+   auth.js — Firebase Auth + EmailJS OTP
    ============================================ */
 
 // ─────────────────────────────────────────────
@@ -14,11 +14,15 @@ const FIREBASE_CONFIG = {
   appId:             "1:1037521256169:web:d91f776d182ff29cfb3a78",
 };
 
-// Where Firebase redirects after the email link is clicked
-const EMAIL_LINK_REDIRECT = "https://ramanuja125.github.io/login_2fa.github.io/success.html";
+// ─────────────────────────────────────────────
+// EMAILJS CONFIG
+// ─────────────────────────────────────────────
+const EMAILJS_SERVICE_ID  = "service_8ngw648";
+const EMAILJS_TEMPLATE_ID = "template_9yfipwi";
+const EMAILJS_PUBLIC_KEY  = "1SRRPZQ8Tp7xLh_Ub";
 
 // ─────────────────────────────────────────────
-// FIREBASE INIT (called once after SDK loads)
+// FIREBASE INIT
 // ─────────────────────────────────────────────
 let _auth = null;
 
@@ -30,64 +34,79 @@ function getAuth() {
 }
 
 // ─────────────────────────────────────────────
-// REGISTER — email + password
+// OTP HELPERS
 // ─────────────────────────────────────────────
-async function registerUser(email, password) {
-  const auth = getAuth();
-  const credential = await auth.createUserWithEmailAndPassword(email, password);
-  // Send a verification email so user confirms ownership
-  await credential.user.sendEmailVerification();
-  return credential.user;
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function storeOTP(email, name, otp) {
+  sessionStorage.setItem("otp_data", JSON.stringify({
+    email,
+    name,
+    otp,
+    expiry: Date.now() + 10 * 60 * 1000, // 10 minutes
+  }));
+}
+
+function verifyOTP(entered) {
+  const raw = sessionStorage.getItem("otp_data");
+  if (!raw) return { valid: false, message: "Session expired. Please sign in again." };
+
+  const data = JSON.parse(raw);
+
+  if (Date.now() > data.expiry) {
+    sessionStorage.removeItem("otp_data");
+    getAuth().signOut();
+    return { valid: false, message: "Code expired. Please sign in again." };
+  }
+
+  if (entered !== data.otp) {
+    return { valid: false, message: "Incorrect code. Please try again." };
+  }
+
+  // Valid — promote to full session
+  sessionStorage.setItem("auth_user", JSON.stringify({
+    name:  data.name,
+    email: data.email,
+  }));
+  sessionStorage.removeItem("otp_data");
+  return { valid: true };
 }
 
 // ─────────────────────────────────────────────
-// LOGIN — password check → then email link 2FA
+// REGISTER
+// ─────────────────────────────────────────────
+async function registerUser(email, password) {
+  const auth = getAuth();
+  const cred = await auth.createUserWithEmailAndPassword(email, password);
+  await cred.user.sendEmailVerification();
+  return cred.user;
+}
+
+// ─────────────────────────────────────────────
+// LOGIN — password check → OTP via EmailJS
 // ─────────────────────────────────────────────
 async function loginUser(email, password) {
   const auth = getAuth();
 
-  // Step 1: verify password
-  await auth.signInWithEmailAndPassword(email, password);
+  // Step 1: verify password with Firebase
+  const cred = await auth.signInWithEmailAndPassword(email, password);
+  const name = cred.user.displayName || email.split("@")[0];
 
-  // Step 2: immediately sign out — user is not fully logged in until email link
-  await auth.signOut();
+  // Step 2: generate OTP and store temporarily
+  const otp = generateOTP();
+  storeOTP(email, name, otp);
 
-  // Step 3: send 2FA email link
-  await auth.sendSignInLinkToEmail(email, {
-    url:              EMAIL_LINK_REDIRECT,
-    handleCodeInApp:  true,
-  });
+  // Step 3: send OTP via EmailJS
+  await emailjs.send(
+    EMAILJS_SERVICE_ID,
+    EMAILJS_TEMPLATE_ID,
+    { to_email: email, otp_code: otp },
+    EMAILJS_PUBLIC_KEY
+  );
 
-  // Save email so success.html can complete the sign-in
-  localStorage.setItem("emailForSignIn", email);
-}
-
-// ─────────────────────────────────────────────
-// COMPLETE SIGN-IN from email link (runs on success.html)
-// ─────────────────────────────────────────────
-async function completeEmailLinkSignIn() {
-  const auth = getAuth();
-  const url  = window.location.href;
-
-  if (!auth.isSignInWithEmailLink(url)) return null;
-
-  let email = localStorage.getItem("emailForSignIn");
-
-  // If user opened the link on a different device, ask for email
-  if (!email) {
-    email = window.prompt("Please enter your email to confirm sign-in:");
-    if (!email) return null;
-  }
-
-  const result = await auth.signInWithEmailLink(email, url);
-  localStorage.removeItem("emailForSignIn");
-
-  const user = {
-    name:  result.user.displayName || email.split("@")[0],
-    email: result.user.email,
-  };
-  sessionStorage.setItem("auth_user", JSON.stringify(user));
-  return user;
+  // User stays signed in to Firebase — if OTP fails we sign out on verify page
 }
 
 // ─────────────────────────────────────────────
@@ -95,9 +114,8 @@ async function completeEmailLinkSignIn() {
 // ─────────────────────────────────────────────
 async function signOut() {
   sessionStorage.removeItem("auth_user");
-  try {
-    await getAuth().signOut();
-  } catch (e) { /* ignore */ }
+  sessionStorage.removeItem("otp_data");
+  try { await getAuth().signOut(); } catch (e) { /* ignore */ }
   window.location.href = "index.html";
 }
 
@@ -167,4 +185,39 @@ function showAlert(id, message) {
 function hideAlert(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove("visible");
+}
+
+// ─────────────────────────────────────────────
+// OTP INPUT AUTO-ADVANCE (verify.html)
+// ─────────────────────────────────────────────
+function initOtpInputs() {
+  const inputs = document.querySelectorAll(".otp-group input");
+  inputs.forEach((input, i) => {
+    input.addEventListener("input", e => {
+      const val = e.target.value.replace(/\D/g, "").slice(-1);
+      e.target.value = val;
+      if (val && i < inputs.length - 1) inputs[i + 1].focus();
+      checkOtpComplete(inputs);
+    });
+    input.addEventListener("keydown", e => {
+      if (e.key === "Backspace" && !input.value && i > 0) inputs[i - 1].focus();
+    });
+    input.addEventListener("paste", e => {
+      e.preventDefault();
+      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+      pasted.split("").forEach((ch, idx) => { if (inputs[idx]) inputs[idx].value = ch; });
+      inputs[Math.min(pasted.length, inputs.length - 1)].focus();
+      checkOtpComplete(inputs);
+    });
+  });
+}
+
+function getOtpValue() {
+  return Array.from(document.querySelectorAll(".otp-group input")).map(i => i.value).join("");
+}
+
+function checkOtpComplete(inputs) {
+  const complete = Array.from(inputs).every(i => i.value.length === 1);
+  const btn = document.getElementById("verify-btn");
+  if (btn) btn.disabled = !complete;
 }

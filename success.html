@@ -8,13 +8,7 @@
 </head>
 <body>
 
-  <div class="card" id="loading-card">
-    <div class="card-header">
-      <p style="color:var(--text-muted);">Verifying your session…</p>
-    </div>
-  </div>
-
-  <div class="card" id="success-card" style="display:none;">
+  <div class="card">
     <div class="card-header">
       <div class="success-icon">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -37,16 +31,6 @@
     <button class="btn btn-outline" onclick="signOut()">Sign Out</button>
   </div>
 
-  <div class="card" id="error-card" style="display:none;">
-    <div class="card-header">
-      <h1 style="color:var(--danger);">Access Denied</h1>
-      <p>The sign-in link is invalid or has expired.</p>
-    </div>
-    <a href="index.html" class="btn btn-primary" style="text-decoration:none; text-align:center; display:block; padding:11px;">
-      Back to Sign In
-    </a>
-  </div>
-
   <p class="hipaa-notice">
     <span>🔒 HIPAA Compliant</span><br/>
     Always sign out when you are done. Do not share your credentials.
@@ -56,35 +40,13 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="auth.js"></script>
   <script>
-    (async () => {
-      try {
-        const user = await completeEmailLinkSignIn();
-
-        document.getElementById("loading-card").style.display = "none";
-
-        if (user) {
-          document.getElementById("user-name").textContent  = user.name;
-          document.getElementById("user-email").textContent = user.email;
-          document.getElementById("success-card").style.display = "block";
-          // Clean up the email link from the URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } else {
-          // No email link — check if already logged in via session
-          const session = getSessionUser();
-          if (session) {
-            document.getElementById("user-name").textContent  = session.name;
-            document.getElementById("user-email").textContent = session.email;
-            document.getElementById("success-card").style.display = "block";
-          } else {
-            window.location.href = "index.html";
-          }
-        }
-      } catch (err) {
-        console.error(err);
-        document.getElementById("loading-card").style.display = "none";
-        document.getElementById("error-card").style.display   = "block";
-      }
-    })();
+    const user = getSessionUser();
+    if (!user) {
+      window.location.href = "index.html";
+    } else {
+      document.getElementById("user-name").textContent  = user.name;
+      document.getElementById("user-email").textContent = user.email;
+    }
   </script>
 </body>
 </html>
