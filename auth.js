@@ -1,111 +1,104 @@
 /* ============================================
-   auth.js — MSAL Authentication + Form Helpers
-   Microsoft Entra ID (Azure AD)
+   auth.js — Firebase Authentication + Form Helpers
    ============================================ */
 
 // ─────────────────────────────────────────────
-// AZURE CONFIG
+// FIREBASE CONFIG
 // ─────────────────────────────────────────────
-const AZURE_CONFIG = {
-  clientId:    "58efa254-95c7-46ed-ab93-6e1cc607e16c",
-  tenantId:    "8e261532-d7e8-48ae-b5c4-8fea024a915b",
-  redirectUri: "https://ramanuja125.github.io/login_2fa.github.io/success.html",
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyCgYDRYO3Wwhbua6nnKn66UZkkfZrdB7-c",
+  authDomain:        "hipaa-877ca.firebaseapp.com",
+  projectId:         "hipaa-877ca",
+  storageBucket:     "hipaa-877ca.firebasestorage.app",
+  messagingSenderId: "1037521256169",
+  appId:             "1:1037521256169:web:d91f776d182ff29cfb3a78",
 };
 
+// Where Firebase redirects after the email link is clicked
+const EMAIL_LINK_REDIRECT = "https://ramanuja125.github.io/login_2fa.github.io/success.html";
+
 // ─────────────────────────────────────────────
-// MSAL INSTANCE
+// FIREBASE INIT (called once after SDK loads)
 // ─────────────────────────────────────────────
-let _msalInstance = null;
+let _auth = null;
 
-function getMsalInstance() {
-  if (_msalInstance) return _msalInstance;
-
-  const msalConfig = {
-    auth: {
-      clientId:    AZURE_CONFIG.clientId,
-      authority:   "https://login.microsoftonline.com/common",
-      redirectUri: AZURE_CONFIG.redirectUri,
-    },
-    cache: {
-      cacheLocation:          "sessionStorage",
-      storeAuthStateInCookie: false,
-    },
-  };
-
-  // "msal" is the global from alcdn.msauth.net (MSAL v2)
-  _msalInstance = new msal.PublicClientApplication(msalConfig);
-  return _msalInstance;
+function getAuth() {
+  if (_auth) return _auth;
+  firebase.initializeApp(FIREBASE_CONFIG);
+  _auth = firebase.auth();
+  return _auth;
 }
 
 // ─────────────────────────────────────────────
-// AUTH ACTIONS
+// REGISTER — email + password
 // ─────────────────────────────────────────────
+async function registerUser(email, password) {
+  const auth = getAuth();
+  const credential = await auth.createUserWithEmailAndPassword(email, password);
+  // Send a verification email so user confirms ownership
+  await credential.user.sendEmailVerification();
+  return credential.user;
+}
 
-// Sign in — redirects to Microsoft login page
-async function signIn() {
-  const instance = getMsalInstance();
-  await instance.loginRedirect({
-    scopes: ["User.Read", "openid", "profile", "email"],
+// ─────────────────────────────────────────────
+// LOGIN — password check → then email link 2FA
+// ─────────────────────────────────────────────
+async function loginUser(email, password) {
+  const auth = getAuth();
+
+  // Step 1: verify password
+  await auth.signInWithEmailAndPassword(email, password);
+
+  // Step 2: immediately sign out — user is not fully logged in until email link
+  await auth.signOut();
+
+  // Step 3: send 2FA email link
+  await auth.sendSignInLinkToEmail(email, {
+    url:              EMAIL_LINK_REDIRECT,
+    handleCodeInApp:  true,
   });
+
+  // Save email so success.html can complete the sign-in
+  localStorage.setItem("emailForSignIn", email);
 }
 
-// Sign up — opens Microsoft account creation flow
-async function signUp() {
-  const instance = getMsalInstance();
-  await instance.loginRedirect({
-    scopes: ["User.Read", "openid", "profile", "email"],
-    prompt: "create",
-  });
-}
+// ─────────────────────────────────────────────
+// COMPLETE SIGN-IN from email link (runs on success.html)
+// ─────────────────────────────────────────────
+async function completeEmailLinkSignIn() {
+  const auth = getAuth();
+  const url  = window.location.href;
 
-// Handle redirect callback on success.html
-// Returns the user object if login was successful, null otherwise
-async function handleRedirectAndGetUser() {
-  const instance = getMsalInstance();
+  if (!auth.isSignInWithEmailLink(url)) return null;
 
-  try {
-    const response = await instance.handleRedirectPromise();
+  let email = localStorage.getItem("emailForSignIn");
 
-    if (response && response.account) {
-      const user = {
-        name:  response.account.name     || response.account.username,
-        email: response.account.username || "",
-      };
-      sessionStorage.setItem("auth_user", JSON.stringify(user));
-      return user;
-    }
-
-    // Already authenticated (page reload)
-    const accounts = instance.getAllAccounts();
-    if (accounts.length > 0) {
-      const user = {
-        name:  accounts[0].name     || accounts[0].username,
-        email: accounts[0].username || "",
-      };
-      sessionStorage.setItem("auth_user", JSON.stringify(user));
-      return user;
-    }
-
-    return null;
-  } catch (error) {
-    console.error("MSAL redirect error:", error);
-    return null;
+  // If user opened the link on a different device, ask for email
+  if (!email) {
+    email = window.prompt("Please enter your email to confirm sign-in:");
+    if (!email) return null;
   }
+
+  const result = await auth.signInWithEmailLink(email, url);
+  localStorage.removeItem("emailForSignIn");
+
+  const user = {
+    name:  result.user.displayName || email.split("@")[0],
+    email: result.user.email,
+  };
+  sessionStorage.setItem("auth_user", JSON.stringify(user));
+  return user;
 }
 
-// Sign out
+// ─────────────────────────────────────────────
+// SIGN OUT
+// ─────────────────────────────────────────────
 async function signOut() {
   sessionStorage.removeItem("auth_user");
   try {
-    const instance = getMsalInstance();
-    const accounts = instance.getAllAccounts();
-    await instance.logoutRedirect({
-      account:               accounts[0] || null,
-      postLogoutRedirectUri: "https://ramanuja125.github.io/login_2fa.github.io/index.html",
-    });
-  } catch (e) {
-    window.location.href = "index.html";
-  }
+    await getAuth().signOut();
+  } catch (e) { /* ignore */ }
+  window.location.href = "index.html";
 }
 
 // ─────────────────────────────────────────────
@@ -174,39 +167,4 @@ function showAlert(id, message) {
 function hideAlert(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove("visible");
-}
-
-// ─────────────────────────────────────────────
-// OTP INPUT HELPERS (verify.html)
-// ─────────────────────────────────────────────
-function initOtpInputs() {
-  const inputs = document.querySelectorAll(".otp-group input");
-  inputs.forEach((input, i) => {
-    input.addEventListener("input", e => {
-      const val = e.target.value.replace(/\D/g, "").slice(-1);
-      e.target.value = val;
-      if (val && i < inputs.length - 1) inputs[i + 1].focus();
-      checkOtpComplete(inputs);
-    });
-    input.addEventListener("keydown", e => {
-      if (e.key === "Backspace" && !input.value && i > 0) inputs[i - 1].focus();
-    });
-    input.addEventListener("paste", e => {
-      e.preventDefault();
-      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-      pasted.split("").forEach((ch, idx) => { if (inputs[idx]) inputs[idx].value = ch; });
-      inputs[Math.min(pasted.length, inputs.length - 1)].focus();
-      checkOtpComplete(inputs);
-    });
-  });
-}
-
-function getOtpValue() {
-  return Array.from(document.querySelectorAll(".otp-group input")).map(i => i.value).join("");
-}
-
-function checkOtpComplete(inputs) {
-  const complete = Array.from(inputs).every(i => i.value.length === 1);
-  const btn = document.getElementById("verify-btn");
-  if (btn) btn.disabled = !complete;
 }

@@ -26,12 +26,11 @@
     </div>
 
     <div class="user-badge">
-      Welcome back, <strong id="user-name">User</strong><br/>
+      Welcome, <strong id="user-name">User</strong><br/>
       <span id="user-email" style="font-weight:400; font-size:0.8rem; opacity:0.8;"></span>
     </div>
 
     <p style="font-size:0.875rem; color:var(--text-muted); text-align:center; margin-bottom:20px;">
-      You have been granted access to the secure portal.<br/>
       Your session is active and encrypted.
     </p>
 
@@ -41,7 +40,7 @@
   <div class="card" id="error-card" style="display:none;">
     <div class="card-header">
       <h1 style="color:var(--danger);">Access Denied</h1>
-      <p>We could not verify your credentials.</p>
+      <p>The sign-in link is invalid or has expired.</p>
     </div>
     <a href="index.html" class="btn btn-primary" style="text-decoration:none; text-align:center; display:block; padding:11px;">
       Back to Sign In
@@ -53,25 +52,35 @@
     Always sign out when you are done. Do not share your credentials.
   </p>
 
-  <!-- Microsoft Authentication Library -->
-  <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="auth.js"></script>
   <script>
     (async () => {
       try {
-        const user = await handleRedirectAndGetUser();
+        const user = await completeEmailLinkSignIn();
 
         document.getElementById("loading-card").style.display = "none";
 
         if (user) {
-          document.getElementById("user-name").textContent  = user.name  || "User";
-          document.getElementById("user-email").textContent = user.email || "";
+          document.getElementById("user-name").textContent  = user.name;
+          document.getElementById("user-email").textContent = user.email;
           document.getElementById("success-card").style.display = "block";
+          // Clean up the email link from the URL
+          window.history.replaceState({}, document.title, window.location.pathname);
         } else {
-          // No active session — redirect to login
-          window.location.href = "index.html";
+          // No email link — check if already logged in via session
+          const session = getSessionUser();
+          if (session) {
+            document.getElementById("user-name").textContent  = session.name;
+            document.getElementById("user-email").textContent = session.email;
+            document.getElementById("success-card").style.display = "block";
+          } else {
+            window.location.href = "index.html";
+          }
         }
       } catch (err) {
+        console.error(err);
         document.getElementById("loading-card").style.display = "none";
         document.getElementById("error-card").style.display   = "block";
       }

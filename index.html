@@ -21,40 +21,76 @@
 
     <div id="alert-error" class="alert alert-error" role="alert"></div>
 
-    <button class="btn btn-primary" id="login-btn" onclick="handleSignIn()">
-      Sign In with Microsoft
-    </button>
+    <form id="login-form" novalidate>
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required />
+        <span class="field-error"></span>
+      </div>
 
-    <div class="footer-link" style="margin-top: 16px;">
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required />
+        <span class="field-error"></span>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="login-btn">Sign In</button>
+    </form>
+
+    <div class="footer-link">
       Don't have an account? <a href="register.html">Register</a>
     </div>
   </div>
 
   <p class="hipaa-notice">
     <span>🔒 HIPAA Compliant</span><br/>
-    This system is protected under federal privacy regulations.<br/>
-    Unauthorized access is strictly prohibited.
+    This system is protected under federal privacy regulations.
   </p>
 
-  <!-- Microsoft Authentication Library -->
-  <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="auth.js"></script>
   <script>
-    async function handleSignIn() {
-      const btn = document.getElementById("login-btn");
-      btn.disabled = true;
-      btn.textContent = "Redirecting…";
+    const emailEl = document.getElementById("email");
+    const pwdEl   = document.getElementById("password");
+
+    emailEl.addEventListener("input", () => clearError(emailEl));
+    pwdEl.addEventListener("input",   () => clearError(pwdEl));
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
       hideAlert("alert-error");
 
-      try {
-        await signIn();
-        // Page will redirect to Microsoft login — no code runs after this
-      } catch (err) {
-        showAlert("alert-error", "Sign in failed. Please try again.");
-        btn.disabled = false;
-        btn.textContent = "Sign In with Microsoft";
+      let valid = true;
+      const email = emailEl.value.trim();
+      const pwd   = pwdEl.value;
+
+      if (!email) {
+        showError(emailEl, "Email is required."); valid = false;
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showError(emailEl, "Enter a valid email address."); valid = false;
       }
-    }
+      if (!pwd) {
+        showError(pwdEl, "Password is required."); valid = false;
+      }
+      if (!valid) return;
+
+      const btn = document.getElementById("login-btn");
+      btn.disabled = true;
+      btn.textContent = "Signing in…";
+
+      try {
+        await loginUser(email, pwd);
+        window.location.href = "verify.html";
+      } catch (err) {
+        let msg = "Incorrect email or password. Please try again.";
+        if (err.code === "auth/too-many-requests") msg = "Too many attempts. Please try again later.";
+        if (err.code === "auth/user-not-found")    msg = "No account found with this email. Please register.";
+        showAlert("alert-error", msg);
+        btn.disabled = false;
+        btn.textContent = "Sign In";
+      }
+    });
   </script>
 </body>
 </html>
