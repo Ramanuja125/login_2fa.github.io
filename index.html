@@ -87,9 +87,15 @@
         await loginUser(email, pwd);
         window.location.href = "verify.html";
       } catch (err) {
+        console.error("Login error:", err.code, err.message);
         let msg = "Incorrect email or password. Please try again.";
-        if (err.code === "auth/too-many-requests") msg = "Too many attempts. Please try again later.";
-        if (err.code === "auth/user-not-found")    msg = "No account found with this email. Please register.";
+        if (err.code === "auth/too-many-requests")       msg = "Too many attempts. Please try again later.";
+        if (err.code === "auth/user-not-found")          msg = "No account found with this email. Please register.";
+        if (err.code === "auth/invalid-credential")      msg = "Incorrect email or password. Please try again.";
+        if (err.code === "auth/wrong-password")          msg = "Incorrect password. Please try again.";
+        if (err.code === "auth/unauthorized-continue-uri") msg = "Configuration error: domain not authorized in Firebase. Please contact support.";
+        if (err.code === "auth/invalid-continue-uri")    msg = "Configuration error: invalid redirect URL.";
+        if (err.code === "auth/missing-continue-uri")    msg = "Configuration error: missing redirect URL.";
         showAlert("alert-error", msg);
         btn.disabled = false;
         btn.textContent = "Sign In";
