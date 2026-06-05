@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Secure Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2zM7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+      </div>
+      <h1>Create Account</h1>
+      <p>Register for secure portal access</p>
+    </div>
+
+    <div id="alert-error"   class="alert alert-error"   role="alert"></div>
+    <div id="alert-success" class="alert alert-success" role="alert"></div>
+
+    <form id="register-form" novalidate>
+
+      <div class="form-group">
+        <label for="fullname">Full name</label>
+        <input
+          type="text"
+          id="fullname"
+          name="fullname"
+          placeholder="Jane Smith"
+          autocomplete="name"
+          required
+        />
+        <span class="field-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+          required
+        />
+        <span class="field-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Create a strong password"
+          autocomplete="new-password"
+          required
+        />
+        <span class="field-error"></span>
+
+        <!-- Live password rule checklist -->
+        <ul class="pwd-rules" aria-label="Password requirements">
+          <li id="rule-length">8+ characters</li>
+          <li id="rule-uppercase">Uppercase letter</li>
+          <li id="rule-lowercase">Lowercase letter</li>
+          <li id="rule-number">Number</li>
+          <li id="rule-special">Special character</li>
+        </ul>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm">Confirm password</label>
+        <input
+          type="password"
+          id="confirm"
+          name="confirm"
+          placeholder="Repeat your password"
+          autocomplete="new-password"
+          required
+        />
+        <span class="field-error"></span>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="register-btn">
+        Create Account
+      </button>
+    </form>
+
+    <div class="footer-link">
+      Already have an account? <a href="index.html">Sign in</a>
+    </div>
+  </div>
+
+  <p class="hipaa-notice">
+    <span>🔒 HIPAA Compliant</span><br/>
+    Your information is protected under federal privacy regulations.
+  </p>
+
+  <script src="auth.js"></script>
+  <script>
+    const form      = document.getElementById("register-form");
+    const nameEl    = document.getElementById("fullname");
+    const emailEl   = document.getElementById("email");
+    const pwdEl     = document.getElementById("password");
+    const confirmEl = document.getElementById("confirm");
+
+    // Live password checklist
+    pwdEl.addEventListener("input", () => {
+      updatePwdChecklist(pwdEl.value);
+      clearError(pwdEl);
+      if (confirmEl.value) checkConfirm();
+    });
+
+    confirmEl.addEventListener("input", checkConfirm);
+    nameEl.addEventListener("input",  () => clearError(nameEl));
+    emailEl.addEventListener("input", () => clearError(emailEl));
+
+    function checkConfirm() {
+      if (confirmEl.value && confirmEl.value !== pwdEl.value) {
+        showError(confirmEl, "Passwords do not match.");
+      } else {
+        clearError(confirmEl);
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert("alert-error");
+      hideAlert("alert-success");
+
+      let valid = true;
+
+      if (!nameEl.value.trim()) {
+        showError(nameEl, "Full name is required."); valid = false;
+      }
+
+      const email = emailEl.value.trim();
+      if (!email) {
+        showError(emailEl, "Email is required."); valid = false;
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showError(emailEl, "Enter a valid email address."); valid = false;
+      }
+
+      if (!isPasswordValid(pwdEl.value)) {
+        showError(pwdEl, "Password does not meet all requirements."); valid = false;
+      }
+
+      if (pwdEl.value !== confirmEl.value) {
+        showError(confirmEl, "Passwords do not match."); valid = false;
+      }
+
+      if (!valid) return;
+
+      const btn = document.getElementById("register-btn");
+      btn.disabled = true;
+      btn.textContent = "Creating account…";
+
+      // ── Azure AD B2C will handle actual registration ──
+      // Replace below with MSAL loginRedirect() using the sign-up policy.
+      try {
+        await simulateRegister(nameEl.value.trim(), email);
+      } catch (err) {
+        showAlert("alert-error", err.message);
+        btn.disabled = false;
+        btn.textContent = "Create Account";
+      }
+    });
+
+    // ── STUB: remove when MSAL is wired up ──
+    async function simulateRegister(name, email) {
+      await new Promise(r => setTimeout(r, 900));
+      showAlert("alert-success", `Account created for ${name}. Redirecting to sign in…`);
+      setTimeout(() => window.location.href = "index.html", 1800);
+    }
+  </script>
+</body>
+</html>

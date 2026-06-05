@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Two-Factor Verification — Secure Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="logo">
+        <!-- Shield icon -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/>
+        </svg>
+      </div>
+      <h1>Two-Factor Verification</h1>
+      <p>Enter the 6-digit code from your authenticator app</p>
+    </div>
+
+    <div id="alert-error" class="alert alert-error" role="alert"></div>
+
+    <!-- 6 individual digit boxes -->
+    <div class="otp-group" aria-label="One-time passcode input">
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 1" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 2" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 3" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 4" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 5" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 6" />
+    </div>
+
+    <button class="btn btn-primary" id="verify-btn" disabled>
+      Verify Code
+    </button>
+
+    <div class="footer-link" style="margin-top:14px;">
+      Didn't receive a code? <a href="#" id="resend-link">Resend</a>
+    </div>
+
+    <div class="footer-link">
+      <a href="index.html">← Back to Sign In</a>
+    </div>
+  </div>
+
+  <p class="hipaa-notice">
+    <span>🔒 HIPAA Compliant</span><br/>
+    Two-factor authentication is required for HIPAA compliance.
+  </p>
+
+  <script src="auth.js"></script>
+  <script>
+    // Auto-advance between digit boxes
+    initOtpInputs();
+
+    let resendCooldown = false;
+
+    document.getElementById("verify-btn").addEventListener("click", async () => {
+      hideAlert("alert-error");
+      const code = getOtpValue();
+
+      if (code.length !== 6) {
+        showAlert("alert-error", "Please enter all 6 digits.");
+        return;
+      }
+
+      const btn = document.getElementById("verify-btn");
+      btn.disabled = true;
+      btn.textContent = "Verifying…";
+
+      // ── Azure AD B2C handles MFA verification automatically ──
+      // This page is shown only in custom flows; with B2C default flows,
+      // the MFA step is embedded in the hosted B2C login page.
+      // This stub simulates the verification for UI testing.
+      try {
+        await simulateVerify(code);
+      } catch (err) {
+        showAlert("alert-error", err.message);
+        btn.disabled = false;
+        btn.textContent = "Verify Code";
+      }
+    });
+
+    document.getElementById("resend-link").addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (resendCooldown) return;
+
+      resendCooldown = true;
+      const link = e.target;
+      link.textContent = "Code sent!";
+      link.style.color = "var(--success)";
+
+      setTimeout(() => {
+        link.textContent = "Resend";
+        link.style.color = "";
+        resendCooldown = false;
+      }, 30000); // 30-second cooldown
+    });
+
+    // ── STUB: remove when MSAL is wired up ──
+    async function simulateVerify(code) {
+      await new Promise(r => setTimeout(r, 900));
+      if (code === "123456") {
+        const user = getSessionUser() || { name: "User", email: "" };
+        onLoginSuccess(user);
+      } else {
+        throw new Error("Invalid code. Please try again.");
+      }
+    }
+  </script>
+</body>
+</html>

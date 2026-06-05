@@ -1,11 +1,125 @@
-<div>
-    <label for="username">Username:</label>
-    <input type="text" id="username" name="username">
-</div>
-<p></p>
-<div>
-    <label for="pass">Password:</label>
-    <input type="password" id="pass" name="password" minlength="8" required="">
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — Secure Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
 
-<input type="submit" value="Sign in">
+  <div class="card">
+    <div class="card-header">
+      <div class="logo">
+        <!-- Lock icon -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2zM7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+      </div>
+      <h1>Sign In</h1>
+      <p>Access your secure portal</p>
+    </div>
+
+    <!-- Error banner -->
+    <div id="alert-error" class="alert alert-error" role="alert"></div>
+
+    <form id="login-form" novalidate>
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+          required
+        />
+        <span class="field-error" id="email-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Enter your password"
+          autocomplete="current-password"
+          required
+        />
+        <span class="field-error" id="password-error"></span>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="login-btn">
+        Sign In
+      </button>
+    </form>
+
+    <div class="footer-link">
+      Don't have an account? <a href="register.html">Register</a>
+    </div>
+  </div>
+
+  <p class="hipaa-notice">
+    <span>🔒 HIPAA Compliant</span><br/>
+    This system is protected under federal privacy regulations.<br/>
+    Unauthorized access is strictly prohibited.
+  </p>
+
+  <script src="auth.js"></script>
+  <script>
+    const form     = document.getElementById("login-form");
+    const emailEl  = document.getElementById("email");
+    const pwdEl    = document.getElementById("password");
+
+    // Clear errors on input
+    emailEl.addEventListener("input", () => clearError(emailEl));
+    pwdEl.addEventListener("input",   () => clearError(pwdEl));
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert("alert-error");
+
+      let valid = true;
+
+      if (!emailEl.value.trim()) {
+        showError(emailEl, "Email is required."); valid = false;
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim())) {
+        showError(emailEl, "Enter a valid email address."); valid = false;
+      }
+
+      if (!pwdEl.value) {
+        showError(pwdEl, "Password is required."); valid = false;
+      }
+
+      if (!valid) return;
+
+      const btn = document.getElementById("login-btn");
+      btn.disabled = true;
+      btn.textContent = "Signing in…";
+
+      // ── Azure AD B2C will handle actual authentication ──
+      // Replace the block below with MSAL loginRedirect() or loginPopup()
+      // once Azure is configured. This stub simulates the flow for UI testing.
+      try {
+        await simulateLogin(emailEl.value.trim());
+      } catch (err) {
+        showAlert("alert-error", err.message);
+        btn.disabled = false;
+        btn.textContent = "Sign In";
+      }
+    });
+
+    // ── STUB: remove when MSAL is wired up ──
+    async function simulateLogin(email) {
+      await new Promise(r => setTimeout(r, 900)); // simulate network
+      // For UI testing only — Azure B2C will replace this
+      if (email === "test@example.com") {
+        onLoginSuccess({ name: "Test User", username: email });
+      } else {
+        throw new Error("Incorrect email or password. Please try again.");
+      }
+    }
+  </script>
+</body>
+</html>
