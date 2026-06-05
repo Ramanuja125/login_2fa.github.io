@@ -19,78 +19,19 @@
       <p>Register for secure portal access</p>
     </div>
 
-    <div id="alert-error"   class="alert alert-error"   role="alert"></div>
-    <div id="alert-success" class="alert alert-success" role="alert"></div>
+    <div id="alert-error" class="alert alert-error" role="alert"></div>
 
-    <form id="register-form" novalidate>
+    <!-- Password requirement reminder -->
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:14px; margin-bottom:20px; font-size:0.85rem; color:#1e40af;">
+      <strong>Password requirements</strong><br/>
+      Your Microsoft account password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character.
+    </div>
 
-      <div class="form-group">
-        <label for="fullname">Full name</label>
-        <input
-          type="text"
-          id="fullname"
-          name="fullname"
-          placeholder="Jane Smith"
-          autocomplete="name"
-          required
-        />
-        <span class="field-error"></span>
-      </div>
+    <button class="btn btn-primary" id="register-btn" onclick="handleSignUp()">
+      Create Account with Microsoft
+    </button>
 
-      <div class="form-group">
-        <label for="email">Email address</label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          placeholder="you@example.com"
-          autocomplete="email"
-          required
-        />
-        <span class="field-error"></span>
-      </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          placeholder="Create a strong password"
-          autocomplete="new-password"
-          required
-        />
-        <span class="field-error"></span>
-
-        <!-- Live password rule checklist -->
-        <ul class="pwd-rules" aria-label="Password requirements">
-          <li id="rule-length">8+ characters</li>
-          <li id="rule-uppercase">Uppercase letter</li>
-          <li id="rule-lowercase">Lowercase letter</li>
-          <li id="rule-number">Number</li>
-          <li id="rule-special">Special character</li>
-        </ul>
-      </div>
-
-      <div class="form-group">
-        <label for="confirm">Confirm password</label>
-        <input
-          type="password"
-          id="confirm"
-          name="confirm"
-          placeholder="Repeat your password"
-          autocomplete="new-password"
-          required
-        />
-        <span class="field-error"></span>
-      </div>
-
-      <button type="submit" class="btn btn-primary" id="register-btn">
-        Create Account
-      </button>
-    </form>
-
-    <div class="footer-link">
+    <div class="footer-link" style="margin-top: 16px;">
       Already have an account? <a href="index.html">Sign in</a>
     </div>
   </div>
@@ -100,81 +41,24 @@
     Your information is protected under federal privacy regulations.
   </p>
 
+  <!-- Microsoft Authentication Library -->
+  <script src="https://unpkg.com/@azure/msal-browser@3.5.0/dist/index.umd.min.js"></script>
   <script src="auth.js"></script>
   <script>
-    const form      = document.getElementById("register-form");
-    const nameEl    = document.getElementById("fullname");
-    const emailEl   = document.getElementById("email");
-    const pwdEl     = document.getElementById("password");
-    const confirmEl = document.getElementById("confirm");
-
-    // Live password checklist
-    pwdEl.addEventListener("input", () => {
-      updatePwdChecklist(pwdEl.value);
-      clearError(pwdEl);
-      if (confirmEl.value) checkConfirm();
-    });
-
-    confirmEl.addEventListener("input", checkConfirm);
-    nameEl.addEventListener("input",  () => clearError(nameEl));
-    emailEl.addEventListener("input", () => clearError(emailEl));
-
-    function checkConfirm() {
-      if (confirmEl.value && confirmEl.value !== pwdEl.value) {
-        showError(confirmEl, "Passwords do not match.");
-      } else {
-        clearError(confirmEl);
-      }
-    }
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      hideAlert("alert-error");
-      hideAlert("alert-success");
-
-      let valid = true;
-
-      if (!nameEl.value.trim()) {
-        showError(nameEl, "Full name is required."); valid = false;
-      }
-
-      const email = emailEl.value.trim();
-      if (!email) {
-        showError(emailEl, "Email is required."); valid = false;
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showError(emailEl, "Enter a valid email address."); valid = false;
-      }
-
-      if (!isPasswordValid(pwdEl.value)) {
-        showError(pwdEl, "Password does not meet all requirements."); valid = false;
-      }
-
-      if (pwdEl.value !== confirmEl.value) {
-        showError(confirmEl, "Passwords do not match."); valid = false;
-      }
-
-      if (!valid) return;
-
+    async function handleSignUp() {
       const btn = document.getElementById("register-btn");
       btn.disabled = true;
-      btn.textContent = "Creating account…";
+      btn.textContent = "Redirecting…";
+      hideAlert("alert-error");
 
-      // ── Azure AD B2C will handle actual registration ──
-      // Replace below with MSAL loginRedirect() using the sign-up policy.
       try {
-        await simulateRegister(nameEl.value.trim(), email);
+        await signUp();
+        // Page will redirect to Microsoft account creation — no code runs after this
       } catch (err) {
-        showAlert("alert-error", err.message);
+        showAlert("alert-error", "Registration failed. Please try again.");
         btn.disabled = false;
-        btn.textContent = "Create Account";
+        btn.textContent = "Create Account with Microsoft";
       }
-    });
-
-    // ── STUB: remove when MSAL is wired up ──
-    async function simulateRegister(name, email) {
-      await new Promise(r => setTimeout(r, 900));
-      showAlert("alert-success", `Account created for ${name}. Redirecting to sign in…`);
-      setTimeout(() => window.location.href = "index.html", 1800);
     }
   </script>
 </body>

@@ -8,9 +8,14 @@
 </head>
 <body>
 
-  <div class="card">
+  <div class="card" id="loading-card">
     <div class="card-header">
-      <!-- Animated checkmark -->
+      <p style="color:var(--text-muted);">Verifying your session…</p>
+    </div>
+  </div>
+
+  <div class="card" id="success-card" style="display:none;">
+    <div class="card-header">
       <div class="success-icon">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <polyline points="20 6 9 17 4 12"/>
@@ -20,8 +25,7 @@
       <p>You are now securely authenticated</p>
     </div>
 
-    <!-- User info badge -->
-    <div class="user-badge" id="user-badge">
+    <div class="user-badge">
       Welcome back, <strong id="user-name">User</strong><br/>
       <span id="user-email" style="font-weight:400; font-size:0.8rem; opacity:0.8;"></span>
     </div>
@@ -31,7 +35,17 @@
       Your session is active and encrypted.
     </p>
 
-    <button class="btn btn-outline" id="logout-btn">Sign Out</button>
+    <button class="btn btn-outline" onclick="signOut()">Sign Out</button>
+  </div>
+
+  <div class="card" id="error-card" style="display:none;">
+    <div class="card-header">
+      <h1 style="color:var(--danger);">Access Denied</h1>
+      <p>We could not verify your credentials.</p>
+    </div>
+    <a href="index.html" class="btn btn-primary" style="text-decoration:none; text-align:center; display:block; padding:11px;">
+      Back to Sign In
+    </a>
   </div>
 
   <p class="hipaa-notice">
@@ -39,21 +53,29 @@
     Always sign out when you are done. Do not share your credentials.
   </p>
 
+  <!-- Microsoft Authentication Library -->
+  <script src="https://unpkg.com/@azure/msal-browser@3.5.0/dist/index.umd.min.js"></script>
   <script src="auth.js"></script>
   <script>
-    // Guard: redirect if not authenticated
-    requireAuth();
+    (async () => {
+      try {
+        const user = await handleRedirectAndGetUser();
 
-    // Display logged-in user
-    const user = getSessionUser();
-    if (user) {
-      document.getElementById("user-name").textContent  = user.name  || "User";
-      document.getElementById("user-email").textContent = user.email || "";
-    }
+        document.getElementById("loading-card").style.display = "none";
 
-    document.getElementById("logout-btn").addEventListener("click", () => {
-      onLogout();
-    });
+        if (user) {
+          document.getElementById("user-name").textContent  = user.name  || "User";
+          document.getElementById("user-email").textContent = user.email || "";
+          document.getElementById("success-card").style.display = "block";
+        } else {
+          // No active session — redirect to login
+          window.location.href = "index.html";
+        }
+      } catch (err) {
+        document.getElementById("loading-card").style.display = "none";
+        document.getElementById("error-card").style.display   = "block";
+      }
+    })();
   </script>
 </body>
 </html>

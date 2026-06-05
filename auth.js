@@ -1,28 +1,139 @@
 /* ============================================
-   auth.js — Client-side validation + Azure MSAL stubs
-   Azure AD B2C connection goes in the CONFIG block below
+   auth.js — MSAL Authentication + Form Helpers
+   Microsoft Entra ID (Azure AD)
    ============================================ */
 
 // ─────────────────────────────────────────────
-// AZURE AD B2C CONFIG (fill in after Azure setup)
+// AZURE CONFIG
 // ─────────────────────────────────────────────
 const AZURE_CONFIG = {
-  clientId:    "YOUR_CLIENT_ID",          // Azure App Registration → Application (client) ID
-  tenantName:  "YOUR_TENANT_NAME",        // e.g. "myapp" from myapp.onmicrosoft.com
-  policySignIn:    "B2C_1_SignInSignUp",  // User flow name in Azure
-  policySignUp:    "B2C_1_SignInSignUp",
-  redirectUri: window.location.origin + "/success.html",
+  clientId:    "58efa254-95c7-46ed-ab93-6e1cc607e16c",
+  tenantId:    "8e261532-d7e8-48ae-b5c4-8fea024a915b",
+  redirectUri: "https://ramanuja125.github.io/login_2fa.github.io/success.html",
 };
+
+// ─────────────────────────────────────────────
+// MSAL INSTANCE
+// ─────────────────────────────────────────────
+let _msalInstance = null;
+
+function getMsalInstance() {
+  if (_msalInstance) return _msalInstance;
+
+  const msalConfig = {
+    auth: {
+      clientId:    AZURE_CONFIG.clientId,
+      authority:   `https://login.microsoftonline.com/${AZURE_CONFIG.tenantId}`,
+      redirectUri: AZURE_CONFIG.redirectUri,
+    },
+    cache: {
+      cacheLocation:       "sessionStorage",
+      storeAuthStateInCookie: false,
+    },
+  };
+
+  // msalBrowser is the UMD global from the CDN script tag
+  _msalInstance = new msalBrowser.PublicClientApplication(msalConfig);
+  return _msalInstance;
+}
+
+// ─────────────────────────────────────────────
+// AUTH ACTIONS
+// ─────────────────────────────────────────────
+
+// Sign in — redirects to Microsoft login page
+async function signIn() {
+  const instance = getMsalInstance();
+  await instance.initialize();
+  await instance.loginRedirect({
+    scopes: ["User.Read", "openid", "profile", "email"],
+  });
+}
+
+// Sign up — opens Microsoft account creation flow
+async function signUp() {
+  const instance = getMsalInstance();
+  await instance.initialize();
+  await instance.loginRedirect({
+    scopes: ["User.Read", "openid", "profile", "email"],
+    prompt: "create",
+  });
+}
+
+// Handle redirect callback on success.html
+// Returns the account object if login was successful, null otherwise
+async function handleRedirectAndGetUser() {
+  const instance = getMsalInstance();
+  await instance.initialize();
+
+  try {
+    const response = await instance.handleRedirectPromise();
+
+    if (response && response.account) {
+      // Fresh redirect — store user and return
+      const user = {
+        name:  response.account.name     || response.account.username,
+        email: response.account.username || "",
+      };
+      sessionStorage.setItem("auth_user", JSON.stringify(user));
+      return user;
+    }
+
+    // Already authenticated (page reload) — check for existing account
+    const accounts = instance.getAllAccounts();
+    if (accounts.length > 0) {
+      const user = {
+        name:  accounts[0].name     || accounts[0].username,
+        email: accounts[0].username || "",
+      };
+      sessionStorage.setItem("auth_user", JSON.stringify(user));
+      return user;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("MSAL redirect error:", error);
+    return null;
+  }
+}
+
+// Sign out
+async function signOut() {
+  sessionStorage.removeItem("auth_user");
+  try {
+    const instance = getMsalInstance();
+    await instance.initialize();
+    const accounts = instance.getAllAccounts();
+    await instance.logoutRedirect({
+      account:               accounts[0] || null,
+      postLogoutRedirectUri: "https://ramanuja125.github.io/login_2fa.github.io/index.html",
+    });
+  } catch (e) {
+    window.location.href = "index.html";
+  }
+}
+
+// ─────────────────────────────────────────────
+// SESSION HELPERS
+// ─────────────────────────────────────────────
+function getSessionUser() {
+  const raw = sessionStorage.getItem("auth_user");
+  return raw ? JSON.parse(raw) : null;
+}
+
+function requireAuth() {
+  if (!getSessionUser()) window.location.href = "index.html";
+}
 
 // ─────────────────────────────────────────────
 // PASSWORD VALIDATION
 // ─────────────────────────────────────────────
 const PWD_RULES = {
-  length:    { test: v => v.length >= 8,            label: "8+ characters"       },
-  uppercase: { test: v => /[A-Z]/.test(v),          label: "Uppercase letter"    },
-  lowercase: { test: v => /[a-z]/.test(v),          label: "Lowercase letter"    },
-  number:    { test: v => /[0-9]/.test(v),          label: "Number"              },
-  special:   { test: v => /[^A-Za-z0-9]/.test(v),  label: "Special character"   },
+  length:    { test: v => v.length >= 8,           label: "8+ characters"     },
+  uppercase: { test: v => /[A-Z]/.test(v),         label: "Uppercase letter"  },
+  lowercase: { test: v => /[a-z]/.test(v),         label: "Lowercase letter"  },
+  number:    { test: v => /[0-9]/.test(v),         label: "Number"            },
+  special:   { test: v => /[^A-Za-z0-9]/.test(v), label: "Special character" },
 };
 
 function validatePassword(password) {
@@ -37,7 +148,6 @@ function isPasswordValid(password) {
   return Object.values(validatePassword(password)).every(Boolean);
 }
 
-// Update the live password rule checklist in register.html
 function updatePwdChecklist(password) {
   const results = validatePassword(password);
   for (const [key, passed] of Object.entries(results)) {
@@ -72,7 +182,7 @@ function hideAlert(id) {
 }
 
 // ─────────────────────────────────────────────
-// OTP INPUT AUTO-ADVANCE
+// OTP INPUT HELPERS (verify.html)
 // ─────────────────────────────────────────────
 function initOtpInputs() {
   const inputs = document.querySelectorAll(".otp-group input");
@@ -89,54 +199,19 @@ function initOtpInputs() {
     input.addEventListener("paste", e => {
       e.preventDefault();
       const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-      pasted.split("").forEach((ch, idx) => {
-        if (inputs[idx]) inputs[idx].value = ch;
-      });
-      const next = Math.min(pasted.length, inputs.length - 1);
-      inputs[next].focus();
+      pasted.split("").forEach((ch, idx) => { if (inputs[idx]) inputs[idx].value = ch; });
+      inputs[Math.min(pasted.length, inputs.length - 1)].focus();
       checkOtpComplete(inputs);
     });
   });
 }
 
 function getOtpValue() {
-  return Array.from(document.querySelectorAll(".otp-group input"))
-              .map(i => i.value).join("");
+  return Array.from(document.querySelectorAll(".otp-group input")).map(i => i.value).join("");
 }
 
 function checkOtpComplete(inputs) {
   const complete = Array.from(inputs).every(i => i.value.length === 1);
   const btn = document.getElementById("verify-btn");
   if (btn) btn.disabled = !complete;
-}
-
-// ─────────────────────────────────────────────
-// AZURE AD B2C — STUBS (wired up in next phase)
-// ─────────────────────────────────────────────
-
-// Called after successful Azure login — receives the ID token claims
-function onLoginSuccess(account) {
-  // account.name, account.username available here
-  sessionStorage.setItem("auth_user", JSON.stringify({
-    name:  account.name  || "User",
-    email: account.username || "",
-  }));
-  window.location.href = "success.html";
-}
-
-// Called on logout
-function onLogout() {
-  sessionStorage.removeItem("auth_user");
-  window.location.href = "index.html";
-}
-
-// Retrieve logged-in user from session (used by success.html)
-function getSessionUser() {
-  const raw = sessionStorage.getItem("auth_user");
-  return raw ? JSON.parse(raw) : null;
-}
-
-// Guard — redirect to login if no session (call on protected pages)
-function requireAuth() {
-  if (!getSessionUser()) window.location.href = "index.html";
 }
