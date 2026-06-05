@@ -27,13 +27,13 @@ function getMsalInstance() {
       redirectUri: AZURE_CONFIG.redirectUri,
     },
     cache: {
-      cacheLocation:       "sessionStorage",
+      cacheLocation:          "sessionStorage",
       storeAuthStateInCookie: false,
     },
   };
 
-  // msalBrowser is the UMD global from the CDN script tag
-  _msalInstance = new msalBrowser.PublicClientApplication(msalConfig);
+  // "msal" is the global from alcdn.msauth.net (MSAL v2)
+  _msalInstance = new msal.PublicClientApplication(msalConfig);
   return _msalInstance;
 }
 
@@ -44,7 +44,6 @@ function getMsalInstance() {
 // Sign in — redirects to Microsoft login page
 async function signIn() {
   const instance = getMsalInstance();
-  await instance.initialize();
   await instance.loginRedirect({
     scopes: ["User.Read", "openid", "profile", "email"],
   });
@@ -53,7 +52,6 @@ async function signIn() {
 // Sign up — opens Microsoft account creation flow
 async function signUp() {
   const instance = getMsalInstance();
-  await instance.initialize();
   await instance.loginRedirect({
     scopes: ["User.Read", "openid", "profile", "email"],
     prompt: "create",
@@ -61,16 +59,14 @@ async function signUp() {
 }
 
 // Handle redirect callback on success.html
-// Returns the account object if login was successful, null otherwise
+// Returns the user object if login was successful, null otherwise
 async function handleRedirectAndGetUser() {
   const instance = getMsalInstance();
-  await instance.initialize();
 
   try {
     const response = await instance.handleRedirectPromise();
 
     if (response && response.account) {
-      // Fresh redirect — store user and return
       const user = {
         name:  response.account.name     || response.account.username,
         email: response.account.username || "",
@@ -79,7 +75,7 @@ async function handleRedirectAndGetUser() {
       return user;
     }
 
-    // Already authenticated (page reload) — check for existing account
+    // Already authenticated (page reload)
     const accounts = instance.getAllAccounts();
     if (accounts.length > 0) {
       const user = {
@@ -102,7 +98,6 @@ async function signOut() {
   sessionStorage.removeItem("auth_user");
   try {
     const instance = getMsalInstance();
-    await instance.initialize();
     const accounts = instance.getAllAccounts();
     await instance.logoutRedirect({
       account:               accounts[0] || null,
