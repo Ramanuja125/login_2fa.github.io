@@ -190,17 +190,24 @@
         });
 
         if (!res.ok) throw new Error("Could not get upload URL. Check API endpoint.");
-        const { upload_url, key } = await res.json();
+        const { upload_url, fields } = await res.json();
 
         progressBar.style.width = "40%";
         uploadStatus.textContent = "Uploading to S3…";
 
-        // Step 2: PUT file directly to S3 using the pre-signed URL
+        // Step 2: POST file to S3 using presigned POST (form data).
+        // 'file' field MUST be appended last — S3 requires it.
+        const formData = new FormData();
+        Object.entries(fields).forEach(([k, v]) => formData.append(k, v));
+        formData.append("file", selectedFile);
+
         const uploadRes = await fetch(upload_url, {
-          method: "PUT",
-          body: selectedFile
+          method: "POST",
+          body: formData
+          // Do NOT set Content-Type — browser sets it with the correct boundary
         });
 
+        // Presigned POST returns 204 on success (no body)
         if (!uploadRes.ok) throw new Error("Upload to S3 failed. Check CORS and bucket settings.");
 
         progressBar.style.width = "100%";
