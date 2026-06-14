@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid":      "AllowS3Upload",
+      "Effect":   "Allow",
+      "Action":   "s3:PutObject",
+      "Resource": "arn:aws:s3:::emr-lab-bucket/*"
+    }
+  ]
+}
+
+/*
+  HOW TO CHANGE THE BUCKET LATER
+  ────────────────────────────────
+  1. In this file: replace "emr-lab-bucket" with the new bucket name.
+  2. In Lambda console → Configuration → Environment variables:
+     update BUCKET_NAME to the new bucket name.
+  3. On the new bucket: apply cors_policy.json under Permissions → CORS.
+  4. No changes needed in upload.html or any other file.
+*/

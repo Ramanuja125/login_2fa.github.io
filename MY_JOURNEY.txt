@@ -1,0 +1,69 @@
+WHAT I BUILT AND HOW I GOT THERE
+=================================
+
+I built a HIPAA-compliant login system with two-factor
+authentication. Every decision I made was driven by two
+things: HIPAA compliance and keeping costs at zero.
+
+Here's what I tried, what didn't work, and why.
+
+
+HOSTING — WHY NOT GODADDY
+--------------------------
+I have a GoDaddy website but it was already configured for
+an existing site. I couldn't build on top of it without
+breaking what was already there. So I used GitHub Pages
+instead — it's free, serves static files, enforces HTTPS
+by default, and most importantly, no sensitive data or
+internal system logic is exposed through it. It simply
+serves the HTML, CSS, and JS files. Nothing more.
+
+
+AUTHENTICATION — WHAT I TRIED
+------------------------------
+
+1. Azure AD B2C
+   I tried this first because it's HIPAA-eligible and free
+   up to 50,000 users. But as of May 2025, Microsoft retired
+   Azure AD B2C for new customers. I couldn't create a new
+   tenant.
+
+2. Microsoft Entra External ID (Azure AD B2C replacement)
+   Microsoft's official replacement. I spent time trying to
+   set it up but kept hitting resource creation errors that
+   I couldn't resolve. Moved on.
+
+3. Azure App Registration (Entra ID)
+   Got this working but hit a hard wall — it only supports
+   Microsoft-backed accounts (Outlook, school/work emails).
+   Anyone with a Gmail or non-Microsoft email couldn't log
+   in. That wasn't acceptable.
+
+4. Supabase
+   Simple to set up and supports any email. But the free
+   tier has no HIPAA BAA. I wasn't willing to compromise on
+   HIPAA, so I ruled it out entirely.
+
+5. Firebase Email Link (2FA)
+   Switched to Firebase, which is HIPAA-eligible under
+   Google's BAA. Got it working with a magic sign-in link
+   as the second factor. But Firebase's free tier has a
+   daily quota on email link sign-ins. Hit the limit during
+   testing. Not viable for real users.
+
+
+WHAT FINALLY WORKED
+--------------------
+Firebase handles user registration and password verification.
+EmailJS delivers a 6-digit one-time code to the user's email
+as the second factor. The OTP is generated in the browser,
+delivered by EmailJS through my own Gmail account, and
+verified client-side. No database owned or managed by me.
+Everything runs under HIPAA-eligible infrastructure.
+
+The final stack:
+  - GitHub Pages    → hosts the frontend (HTML, CSS, JS)
+  - Firebase Auth   → stores users, verifies passwords
+  - EmailJS + Gmail → delivers the 6-digit OTP to any email
+
+Simple. Free. HIPAA-compliant.

@@ -57,7 +57,7 @@
       const result = verifyOTP(code);
 
       if (result.valid) {
-        window.location.href = "success.html";
+        window.location.href = "upload.html";
       } else {
         showAlert("alert-error", result.message);
         if (result.message.includes("expired") || result.message.includes("Session")) {

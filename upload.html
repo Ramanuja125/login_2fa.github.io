@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload File — Secure Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 16px;
+      background: transparent;
+    }
+    .upload-area:hover,
+    .upload-area.drag-over {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.04);
+    }
+    .upload-area svg {
+      width: 40px;
+      height: 40px;
+      stroke: var(--text-muted);
+      fill: none;
+      stroke-width: 1.5;
+      margin-bottom: 10px;
+    }
+    .upload-area p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .upload-area .file-name {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-all;
+    }
+    #file-input {
+      display: none;
+    }
+    .progress-bar-wrap {
+      width: 100%;
+      background: var(--border);
+      border-radius: 99px;
+      height: 6px;
+      margin: 12px 0;
+      display: none;
+    }
+    .progress-bar-fill {
+      height: 6px;
+      border-radius: 99px;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.2s;
+    }
+    .upload-status {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      min-height: 18px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-row .btn {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h1>Upload File</h1>
+      <p>Welcome, <strong id="user-name">User</strong></p>
+    </div>
+
+    <div id="alert-error"  class="alert alert-error"   role="alert"></div>
+    <div id="alert-success" class="alert alert-success" role="alert"></div>
+
+    <!-- Drop zone -->
+    <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <p>Click to choose a file, or drag &amp; drop here</p>
+      <div class="file-name" id="chosen-file"></div>
+    </div>
+    <input type="file" id="file-input" />
+
+    <!-- Progress -->
+    <div class="progress-bar-wrap" id="progress-wrap">
+      <div class="progress-bar-fill" id="progress-bar"></div>
+    </div>
+    <div class="upload-status" id="upload-status"></div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="btn btn-primary" id="upload-btn" disabled>Upload</button>
+      <button class="btn btn-outline" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+
+  <p class="hipaa-notice">
+    <span>🔒 HIPAA Compliant</span><br/>
+    Files are uploaded securely over HTTPS. Always sign out when done.
+  </p>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    // ── CONFIG ────────────────────────────────────────────────────
+    // After you create the API Gateway endpoint, paste its URL here.
+    // To change the S3 bucket later, update the Lambda env variable
+    // (BUCKET_NAME) in the AWS console — no change needed here.
+    const API_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url";
+    // ─────────────────────────────────────────────────────────────
+
+    const user = getSessionUser();
+    if (!user) {
+      window.location.href = "index.html";
+    } else {
+      document.getElementById("user-name").textContent = user.name || user.email;
+    }
+
+    const fileInput   = document.getElementById("file-input");
+    const dropZone    = document.getElementById("drop-zone");
+    const chosenFile  = document.getElementById("chosen-file");
+    const uploadBtn   = document.getElementById("upload-btn");
+    const progressWrap = document.getElementById("progress-wrap");
+    const progressBar  = document.getElementById("progress-bar");
+    const uploadStatus = document.getElementById("upload-status");
+
+    let selectedFile = null;
+
+    function setFile(file) {
+      selectedFile = file;
+      chosenFile.textContent = file.name;
+      uploadBtn.disabled = false;
+      hideAlert("alert-error");
+      hideAlert("alert-success");
+      uploadStatus.textContent = "";
+    }
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    // Drag and drop
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("drag-over");
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+      const file = e.dataTransfer.files[0];
+      if (file) setFile(file);
+    });
+
+    uploadBtn.addEventListener("click", async () => {
+      if (!selectedFile) return;
+
+      uploadBtn.disabled = true;
+      hideAlert("alert-error");
+      hideAlert("alert-success");
+      progressWrap.style.display = "block";
+      progressBar.style.width = "10%";
+      uploadStatus.textContent = "Getting secure upload link…";
+
+      try {
+        // Step 1: Get pre-signed URL from Lambda
+        const res = await fetch(API_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: selectedFile.name })
+        });
+
+        if (!res.ok) throw new Error("Could not get upload URL. Check API endpoint.");
+        const { upload_url, key } = await res.json();
+
+        progressBar.style.width = "40%";
+        uploadStatus.textContent = "Uploading to S3…";
+
+        // Step 2: PUT file directly to S3 using the pre-signed URL
+        const uploadRes = await fetch(upload_url, {
+          method: "PUT",
+          body: selectedFile
+        });
+
+        if (!uploadRes.ok) throw new Error("Upload to S3 failed. Check CORS and bucket settings.");
+
+        progressBar.style.width = "100%";
+        uploadStatus.textContent = "";
+        showAlert("alert-success", `✓ "${selectedFile.name}" uploaded successfully.`);
+
+        // Reset
+        selectedFile = null;
+        fileInput.value = "";
+        chosenFile.textContent = "";
+        uploadBtn.disabled = true;
+        setTimeout(() => { progressWrap.style.display = "none"; progressBar.style.width = "0%"; }, 1500);
+
+      } catch (err) {
+        progressWrap.style.display = "none";
+        progressBar.style.width = "0%";
+        uploadStatus.textContent = "";
+        showAlert("alert-error", err.message || "Upload failed. Please try again.");
+        uploadBtn.disabled = false;
+        console.error("Upload error:", err);
+      }
+    });
+  </script>
+</body>
+</html>
