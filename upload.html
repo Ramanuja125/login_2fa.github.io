@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Upload File — Secure Portal</title>
+  <title>Upload Files — Secure Portal</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
     .upload-area {
@@ -34,16 +34,55 @@
       font-size: 0.875rem;
       color: var(--text-muted);
     }
-    .upload-area .file-name {
+    .upload-area .file-count {
       margin-top: 8px;
       font-size: 0.85rem;
       font-weight: 600;
-      color: var(--text);
-      word-break: break-all;
+      color: var(--primary);
     }
-    #file-input {
+    #file-input { display: none; }
+
+    /* File list */
+    .file-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 16px;
       display: none;
     }
+    .file-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      background: var(--surface, rgba(0,0,0,0.04));
+      gap: 8px;
+    }
+    .file-list li .fname {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .file-list li .fsize {
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .file-list li .fstatus {
+      font-size: 0.75rem;
+      white-space: nowrap;
+      min-width: 60px;
+      text-align: right;
+    }
+    .file-list li .fstatus.pending  { color: var(--text-muted); }
+    .file-list li .fstatus.uploading { color: var(--primary); }
+    .file-list li .fstatus.done     { color: #22c55e; }
+    .file-list li .fstatus.error    { color: #ef4444; }
+
+    /* Overall progress */
     .progress-bar-wrap {
       width: 100%;
       background: var(--border);
@@ -57,7 +96,7 @@
       border-radius: 99px;
       background: var(--primary);
       width: 0%;
-      transition: width 0.2s;
+      transition: width 0.3s;
     }
     .upload-status {
       text-align: center;
@@ -70,9 +109,7 @@
       display: flex;
       gap: 10px;
     }
-    .btn-row .btn {
-      flex: 1;
-    }
+    .btn-row .btn { flex: 1; }
   </style>
 </head>
 <body>
@@ -84,22 +121,26 @@
           <polyline points="20 6 9 17 4 12"/>
         </svg>
       </div>
-      <h1>Upload File</h1>
+      <h1>Upload Files</h1>
       <p>Welcome, <strong id="user-name">User</strong></p>
     </div>
 
-    <div id="alert-error"  class="alert alert-error"   role="alert"></div>
+    <div id="alert-error"   class="alert alert-error"   role="alert"></div>
     <div id="alert-success" class="alert alert-success" role="alert"></div>
 
     <!-- Drop zone -->
     <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      <p>Click to choose a file, or drag &amp; drop here</p>
-      <div class="file-name" id="chosen-file"></div>
+      <p>Click to choose files, or drag &amp; drop here</p>
+      <p style="font-size:0.75rem; margin-top:4px;">You can select multiple files at once</p>
+      <div class="file-count" id="file-count"></div>
     </div>
-    <input type="file" id="file-input" />
+    <input type="file" id="file-input" multiple />
 
-    <!-- Progress -->
+    <!-- Selected file list -->
+    <ul class="file-list" id="file-list"></ul>
+
+    <!-- Overall progress -->
     <div class="progress-bar-wrap" id="progress-wrap">
       <div class="progress-bar-fill" id="progress-bar"></div>
     </div>
@@ -122,9 +163,6 @@
   <script src="auth.js"></script>
   <script>
     // ── CONFIG ────────────────────────────────────────────────────
-    // After you create the API Gateway endpoint, paste its URL here.
-    // To change the S3 bucket later, update the Lambda env variable
-    // (BUCKET_NAME) in the AWS console — no change needed here.
     const API_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url";
     // ─────────────────────────────────────────────────────────────
 
@@ -135,99 +173,134 @@
       document.getElementById("user-name").textContent = user.name || user.email;
     }
 
-    const fileInput   = document.getElementById("file-input");
-    const dropZone    = document.getElementById("drop-zone");
-    const chosenFile  = document.getElementById("chosen-file");
-    const uploadBtn   = document.getElementById("upload-btn");
+    const fileInput    = document.getElementById("file-input");
+    const dropZone     = document.getElementById("drop-zone");
+    const fileCountEl  = document.getElementById("file-count");
+    const fileListEl   = document.getElementById("file-list");
+    const uploadBtn    = document.getElementById("upload-btn");
     const progressWrap = document.getElementById("progress-wrap");
     const progressBar  = document.getElementById("progress-bar");
     const uploadStatus = document.getElementById("upload-status");
 
-    let selectedFile = null;
+    let selectedFiles = [];
 
-    function setFile(file) {
-      selectedFile = file;
-      chosenFile.textContent = file.name;
-      uploadBtn.disabled = false;
+    function formatSize(bytes) {
+      if (bytes < 1024)       return bytes + " B";
+      if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / 1048576).toFixed(1) + " MB";
+    }
+
+    function setFiles(fileList) {
+      selectedFiles = Array.from(fileList);
       hideAlert("alert-error");
       hideAlert("alert-success");
       uploadStatus.textContent = "";
+
+      fileCountEl.textContent = selectedFiles.length === 1
+        ? "1 file selected"
+        : `${selectedFiles.length} files selected`;
+
+      // Build file list UI
+      fileListEl.innerHTML = "";
+      selectedFiles.forEach((f, i) => {
+        const li = document.createElement("li");
+        li.id = `file-row-${i}`;
+        li.innerHTML = `
+          <span class="fname" title="${f.name}">${f.name}</span>
+          <span class="fsize">${formatSize(f.size)}</span>
+          <span class="fstatus pending" id="fstatus-${i}">Pending</span>`;
+        fileListEl.appendChild(li);
+      });
+      fileListEl.style.display = selectedFiles.length ? "block" : "none";
+      uploadBtn.disabled = selectedFiles.length === 0;
     }
 
     fileInput.addEventListener("change", () => {
-      if (fileInput.files[0]) setFile(fileInput.files[0]);
+      if (fileInput.files.length) setFiles(fileInput.files);
     });
 
-    // Drag and drop
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropZone.classList.add("drag-over");
-    });
-    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+    dropZone.addEventListener("dragover",  (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+    dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("drag-over"));
     dropZone.addEventListener("drop", (e) => {
       e.preventDefault();
       dropZone.classList.remove("drag-over");
-      const file = e.dataTransfer.files[0];
-      if (file) setFile(file);
+      if (e.dataTransfer.files.length) setFiles(e.dataTransfer.files);
     });
 
+    async function uploadOne(file, index) {
+      const statusEl = document.getElementById(`fstatus-${index}`);
+      statusEl.textContent  = "Uploading…";
+      statusEl.className    = "fstatus uploading";
+
+      // Get presigned POST data from Lambda
+      const res = await fetch(API_ENDPOINT, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ filename: file.name }),
+      });
+      if (!res.ok) throw new Error(`Could not get upload URL for "${file.name}"`);
+      const { upload_url, fields } = await res.json();
+
+      // Build form data — file field MUST be last
+      const formData = new FormData();
+      Object.entries(fields).forEach(([k, v]) => formData.append(k, v));
+      formData.append("file", file);
+
+      const uploadRes = await fetch(upload_url, { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error(`S3 rejected "${file.name}" (${uploadRes.status})`);
+
+      statusEl.textContent = "✓ Done";
+      statusEl.className   = "fstatus done";
+    }
+
     uploadBtn.addEventListener("click", async () => {
-      if (!selectedFile) return;
+      if (!selectedFiles.length) return;
 
       uploadBtn.disabled = true;
       hideAlert("alert-error");
       hideAlert("alert-success");
       progressWrap.style.display = "block";
-      progressBar.style.width = "10%";
-      uploadStatus.textContent = "Getting secure upload link…";
+      progressBar.style.width    = "0%";
 
-      try {
-        // Step 1: Get pre-signed URL from Lambda
-        const res = await fetch(API_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: selectedFile.name })
-        });
+      let done = 0;
+      const errors = [];
 
-        if (!res.ok) throw new Error("Could not get upload URL. Check API endpoint.");
-        const { upload_url, fields } = await res.json();
+      for (let i = 0; i < selectedFiles.length; i++) {
+        uploadStatus.textContent = `Uploading ${i + 1} of ${selectedFiles.length}…`;
+        try {
+          await uploadOne(selectedFiles[i], i);
+          done++;
+        } catch (err) {
+          errors.push(selectedFiles[i].name);
+          const statusEl = document.getElementById(`fstatus-${i}`);
+          statusEl.textContent = "✗ Failed";
+          statusEl.className   = "fstatus error";
+          console.error("Upload error:", err);
+        }
+        progressBar.style.width = `${Math.round(((i + 1) / selectedFiles.length) * 100)}%`;
+      }
 
-        progressBar.style.width = "40%";
-        uploadStatus.textContent = "Uploading to S3…";
+      uploadStatus.textContent = "";
 
-        // Step 2: POST file to S3 using presigned POST (form data).
-        // 'file' field MUST be appended last — S3 requires it.
-        const formData = new FormData();
-        Object.entries(fields).forEach(([k, v]) => formData.append(k, v));
-        formData.append("file", selectedFile);
-
-        const uploadRes = await fetch(upload_url, {
-          method: "POST",
-          body: formData
-          // Do NOT set Content-Type — browser sets it with the correct boundary
-        });
-
-        // Presigned POST returns 204 on success (no body)
-        if (!uploadRes.ok) throw new Error("Upload to S3 failed. Check CORS and bucket settings.");
-
-        progressBar.style.width = "100%";
-        uploadStatus.textContent = "";
-        showAlert("alert-success", `✓ "${selectedFile.name}" uploaded successfully.`);
-
-        // Reset
-        selectedFile = null;
+      if (errors.length === 0) {
+        showAlert("alert-success",
+          done === 1
+            ? `✓ 1 file uploaded successfully.`
+            : `✓ ${done} files uploaded successfully.`
+        );
+        // Reset after all done
+        selectedFiles = [];
         fileInput.value = "";
-        chosenFile.textContent = "";
+        fileCountEl.textContent = "";
+        fileListEl.style.display = "none";
+        fileListEl.innerHTML = "";
         uploadBtn.disabled = true;
         setTimeout(() => { progressWrap.style.display = "none"; progressBar.style.width = "0%"; }, 1500);
-
-      } catch (err) {
-        progressWrap.style.display = "none";
-        progressBar.style.width = "0%";
-        uploadStatus.textContent = "";
-        showAlert("alert-error", err.message || "Upload failed. Please try again.");
+      } else {
+        showAlert("alert-error",
+          `${errors.length} file(s) failed to upload: ${errors.join(", ")}. Others succeeded.`
+        );
         uploadBtn.disabled = false;
-        console.error("Upload error:", err);
       }
     });
   </script>
