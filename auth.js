@@ -17,9 +17,9 @@ const FIREBASE_CONFIG = {
 // ─────────────────────────────────────────────
 // EMAILJS CONFIG
 // ─────────────────────────────────────────────
-const EMAILJS_SERVICE_ID  = "service_8ngw648";
-const EMAILJS_TEMPLATE_ID = "template_9yfipwi";
-const EMAILJS_PUBLIC_KEY  = "1SRRPZQ8Tp7xLh_Ub";
+const EMAILJS_SERVICE_ID  = "service_xkqj0hk";
+const EMAILJS_TEMPLATE_ID = "template_itledcu";
+const EMAILJS_PUBLIC_KEY  = "TTVqGUIKfCVoS2Sbz";
 
 // ─────────────────────────────────────────────
 // FIREBASE INIT
