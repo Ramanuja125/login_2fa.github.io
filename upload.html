@@ -16,26 +16,17 @@
       margin-bottom: 16px;
       background: transparent;
     }
-    .upload-area:hover,
-    .upload-area.drag-over {
+    .upload-area:hover, .upload-area.drag-over {
       border-color: var(--primary);
       background: rgba(99, 102, 241, 0.04);
     }
-    .upload-area svg {
-      width: 40px; height: 40px;
-      stroke: var(--text-muted); fill: none; stroke-width: 1.5;
-      margin-bottom: 10px;
-    }
+    .upload-area svg { width: 40px; height: 40px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; margin-bottom: 10px; }
     .upload-area p { margin: 0; font-size: 0.875rem; color: var(--text-muted); }
     .upload-area .file-count { margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: var(--primary); }
     #file-input { display: none; }
 
     .file-list { list-style: none; padding: 0; margin: 0 0 16px; display: none; }
-    .file-list li {
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 0.82rem; padding: 6px 10px; border-radius: 6px; margin-bottom: 4px;
-      background: var(--surface, rgba(0,0,0,0.04)); gap: 8px;
-    }
+    .file-list li { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; background: var(--surface, rgba(0,0,0,0.04)); gap: 8px; }
     .file-list li .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
     .file-list li .fsize { color: var(--text-muted); white-space: nowrap; }
     .file-list li .fstatus { font-size: 0.75rem; white-space: nowrap; min-width: 60px; text-align: right; }
@@ -50,43 +41,18 @@
     .btn-row { display: flex; gap: 10px; }
     .btn-row .btn { flex: 1; }
 
-    /* Chat section */
-    .chat-section {
-      display: none;
-      margin-top: 28px;
-      border-top: 1px solid var(--border);
-      padding-top: 20px;
-    }
+    .chat-section { display: none; margin-top: 28px; border-top: 1px solid var(--border); padding-top: 20px; }
     .chat-section h2 { font-size: 1rem; font-weight: 600; margin: 0 0 12px; color: var(--text); }
-    .chat-file-select {
-      width: 100%; padding: 8px 10px; border-radius: 8px;
-      border: 1px solid var(--border); background: var(--surface, #fff);
-      color: var(--text); font-size: 0.85rem; margin-bottom: 14px;
-      box-sizing: border-box;
-    }
-    .chat-messages {
-      min-height: 120px; max-height: 320px; overflow-y: auto;
-      border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px; margin-bottom: 12px;
-      display: flex; flex-direction: column; gap: 10px;
-      background: var(--surface, rgba(0,0,0,0.02));
-    }
-    .chat-bubble {
-      max-width: 88%; padding: 9px 13px; border-radius: 12px;
-      font-size: 0.84rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
-    }
+    .chat-file-select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: #111827; font-size: 0.85rem; margin-bottom: 14px; box-sizing: border-box; }
+    .chat-messages { min-height: 120px; max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.02); }
+    .chat-bubble { max-width: 88%; padding: 9px 13px; border-radius: 12px; font-size: 0.84rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
     .chat-bubble.user      { align-self: flex-end; background: var(--primary, #6366f1); color: #fff; border-bottom-right-radius: 3px; }
-    .chat-bubble.assistant { align-self: flex-start; background: var(--border, #e5e7eb); color: var(--text, #111); border-bottom-left-radius: 3px; }
-    .chat-bubble.thinking  { align-self: flex-start; background: var(--border, #e5e7eb); color: var(--text-muted, #888); font-style: italic; }
+    .chat-bubble.assistant { align-self: flex-start; background: #e5e7eb; color: #111827; border-bottom-left-radius: 3px; }
+    .chat-bubble.thinking  { align-self: flex-start; background: #e5e7eb; color: #6b7280; font-style: italic; }
     .chat-input-row { display: flex; gap: 8px; }
-    .chat-input-row input {
-      flex: 1; padding: 10px 14px; border-radius: 8px;
-      border: 1px solid #d1d5db; font-size: 0.9rem;
-      color: #111827; background: #ffffff; box-sizing: border-box;
-      min-width: 0; height: 42px;
-    }
+    .chat-input-row input { flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.9rem; color: #111827; background: #ffffff; box-sizing: border-box; min-width: 0; height: 42px; }
     .chat-input-row input:focus { outline: none; border-color: var(--primary); }
-    .chat-input-row .btn { flex: 0 0 auto; padding: 9px 18px; font-size: 0.875rem; }
+    .chat-input-row .btn { flex: 0 0 auto; padding: 10px 18px; font-size: 0.875rem; }
     .chat-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
   </style>
 </head>
@@ -95,9 +61,7 @@
   <div class="card">
     <div class="card-header">
       <div class="success-icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <h1>Upload Files</h1>
       <p>Welcome, <strong id="user-name">User</strong></p>
@@ -126,26 +90,22 @@
       <button class="btn btn-outline" onclick="signOut()">Sign Out</button>
     </div>
 
-    <!-- Chat section -->
     <div class="chat-section" id="chat-section">
-      <h2>💬 Ask questions about your file</h2>
-
+      <h2>Ask questions about your file</h2>
       <select class="chat-file-select" id="chat-file-select">
         <option value="">— select a file to chat about —</option>
       </select>
-
       <div class="chat-messages" id="chat-messages"></div>
-
       <div class="chat-input-row">
         <input type="text" id="chat-input" placeholder="Ask a question about the file…" disabled />
         <button class="btn btn-primary" id="chat-send" disabled>Send</button>
       </div>
-      <p class="chat-hint">Powered by Gemini Flash via OpenRouter. Your API key stays server-side.</p>
+      <p class="chat-hint">Powered by Gemini Flash. Your API key stays server-side.</p>
     </div>
   </div>
 
   <p class="hipaa-notice">
-    <span>🔒 HIPAA Compliant</span><br/>
+    <span>HIPAA Compliant</span><br/>
     Files are uploaded securely over HTTPS. Always sign out when done.
   </p>
 
@@ -153,29 +113,27 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="auth.js"></script>
   <script>
-    // ── CONFIG ────────────────────────────────────────────────────────────────
-    const API_ENDPOINT  = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url";
-    const CHAT_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/chat";  // ← update after AWS Step 4
-    // ─────────────────────────────────────────────────────────────────────────
+    var API_ENDPOINT  = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url";
+    var CHAT_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/chat";
 
-    const user = getSessionUser();
+    var user = getSessionUser();
     if (!user) {
       window.location.href = "index.html";
     } else {
-      document.getElementById("user-name").textContent = user.name || user.email;
+      document.getElementById("user-name").textContent = user.name || user.email || "User";
     }
 
-    const fileInput    = document.getElementById("file-input");
-    const dropZone     = document.getElementById("drop-zone");
-    const fileCountEl  = document.getElementById("file-count");
-    const fileListEl   = document.getElementById("file-list");
-    const uploadBtn    = document.getElementById("upload-btn");
-    const progressWrap = document.getElementById("progress-wrap");
-    const progressBar  = document.getElementById("progress-bar");
-    const uploadStatus = document.getElementById("upload-status");
+    var fileInput    = document.getElementById("file-input");
+    var dropZone     = document.getElementById("drop-zone");
+    var fileCountEl  = document.getElementById("file-count");
+    var fileListEl   = document.getElementById("file-list");
+    var uploadBtn    = document.getElementById("upload-btn");
+    var progressWrap = document.getElementById("progress-wrap");
+    var progressBar  = document.getElementById("progress-bar");
+    var uploadStatus = document.getElementById("upload-status");
 
-    let selectedFiles = [];
-    let uploadedKeys  = [];  // { key, name } for each successfully uploaded file
+    var selectedFiles = [];
+    var uploadedKeys  = [];
 
     function formatSize(bytes) {
       if (bytes < 1024)    return bytes + " B";
@@ -188,95 +146,91 @@
       hideAlert("alert-error");
       hideAlert("alert-success");
       uploadStatus.textContent = "";
-      fileCountEl.textContent  = selectedFiles.length === 1 ? "1 file selected" : `${selectedFiles.length} files selected`;
+      fileCountEl.textContent  = selectedFiles.length === 1 ? "1 file selected" : selectedFiles.length + " files selected";
       fileListEl.innerHTML = "";
-      selectedFiles.forEach((f, i) => {
-        const li = document.createElement("li");
-        li.id = `file-row-${i}`;
-        li.innerHTML = `
-          <span class="fname" title="${f.name}">${f.name}</span>
-          <span class="fsize">${formatSize(f.size)}</span>
-          <span class="fstatus pending" id="fstatus-${i}">Pending</span>`;
+      selectedFiles.forEach(function(f, i) {
+        var li = document.createElement("li");
+        li.id = "file-row-" + i;
+        li.innerHTML = "<span class=\"fname\" title=\"" + f.name + "\">" + f.name + "</span><span class=\"fsize\">" + formatSize(f.size) + "</span><span class=\"fstatus pending\" id=\"fstatus-" + i + "\">Pending</span>";
         fileListEl.appendChild(li);
       });
       fileListEl.style.display = selectedFiles.length ? "block" : "none";
       uploadBtn.disabled = selectedFiles.length === 0;
     }
 
-    fileInput.addEventListener("change", () => { if (fileInput.files.length) setFiles(fileInput.files); });
-    dropZone.addEventListener("dragover",  (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
-    dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("drag-over"));
-    dropZone.addEventListener("drop", (e) => {
+    fileInput.addEventListener("change", function() { if (fileInput.files.length) setFiles(fileInput.files); });
+    dropZone.addEventListener("dragover",  function(e) { e.preventDefault(); dropZone.classList.add("drag-over"); });
+    dropZone.addEventListener("dragleave", function()  { dropZone.classList.remove("drag-over"); });
+    dropZone.addEventListener("drop", function(e) {
       e.preventDefault(); dropZone.classList.remove("drag-over");
       if (e.dataTransfer.files.length) setFiles(e.dataTransfer.files);
     });
 
     async function uploadOne(file, index) {
-      const statusEl = document.getElementById(`fstatus-${index}`);
-      statusEl.textContent = "Uploading…";
+      var statusEl = document.getElementById("fstatus-" + index);
+      statusEl.textContent = "Uploading...";
       statusEl.className   = "fstatus uploading";
 
-      const res = await fetch(API_ENDPOINT, {
+      var res = await fetch(API_ENDPOINT, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename: file.name }),
       });
-      if (!res.ok) throw new Error(`Could not get upload URL for "${file.name}"`);
-      const { upload_url, fields, key } = await res.json();
+      if (!res.ok) throw new Error("Could not get upload URL for " + file.name);
+      var data = await res.json();
+      var upload_url = data.upload_url;
+      var fields = data.fields;
+      var key = data.key;
 
-      const formData = new FormData();
-      Object.entries(fields).forEach(([k, v]) => formData.append(k, v));
+      var formData = new FormData();
+      Object.entries(fields).forEach(function(entry) { formData.append(entry[0], entry[1]); });
       formData.append("file", file);
 
-      const uploadRes = await fetch(upload_url, { method: "POST", body: formData });
-      if (!uploadRes.ok) throw new Error(`S3 rejected "${file.name}" (${uploadRes.status})`);
+      var uploadRes = await fetch(upload_url, { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error("S3 rejected " + file.name + " (" + uploadRes.status + ")");
 
-      statusEl.textContent = "✓ Chat";
+      statusEl.textContent = "Chat";
       statusEl.className   = "fstatus done";
       statusEl.title       = "Click to chat about this file";
-      statusEl.onclick     = () => startChatWith(key, file.name);
+      statusEl.onclick     = function() { startChatWith(key, file.name); };
 
       return key;
     }
 
-    uploadBtn.addEventListener("click", async () => {
+    uploadBtn.addEventListener("click", async function() {
       if (!selectedFiles.length) return;
       uploadBtn.disabled = true;
       hideAlert("alert-error"); hideAlert("alert-success");
       progressWrap.style.display = "block";
       progressBar.style.width    = "0%";
 
-      let done = 0;
-      const errors  = [];
-      const newKeys = [];
+      var done = 0;
+      var errors  = [];
+      var newKeys = [];
 
-      for (let i = 0; i < selectedFiles.length; i++) {
-        uploadStatus.textContent = `Uploading ${i + 1} of ${selectedFiles.length}…`;
+      for (var i = 0; i < selectedFiles.length; i++) {
+        uploadStatus.textContent = "Uploading " + (i + 1) + " of " + selectedFiles.length + "...";
         try {
-          const key = await uploadOne(selectedFiles[i], i);
-          newKeys.push({ key, name: selectedFiles[i].name });
+          var key = await uploadOne(selectedFiles[i], i);
+          newKeys.push({ key: key, name: selectedFiles[i].name });
           done++;
         } catch (err) {
           errors.push(selectedFiles[i].name);
-          const statusEl = document.getElementById(`fstatus-${i}`);
-          statusEl.textContent = "✗ Failed";
+          var statusEl = document.getElementById("fstatus-" + i);
+          statusEl.textContent = "Failed";
           statusEl.className   = "fstatus error";
           console.error("Upload error:", err);
         }
-        progressBar.style.width = `${Math.round(((i + 1) / selectedFiles.length) * 100)}%`;
+        progressBar.style.width = Math.round(((i + 1) / selectedFiles.length) * 100) + "%";
       }
 
       uploadStatus.textContent = "";
 
       if (errors.length === 0) {
-        showAlert("alert-success",
-          done === 1
-            ? '✓ 1 file uploaded. Click "✓ Chat" next to it to ask questions.'
-            : `✓ ${done} files uploaded. Click "✓ Chat" next to any file to ask questions.`
-        );
+        showAlert("alert-success", done === 1 ? "1 file uploaded. Click Chat next to it to ask questions." : done + " files uploaded. Click Chat next to any file to ask questions.");
         fileInput.value = ""; fileCountEl.textContent = ""; uploadBtn.disabled = true;
-        setTimeout(() => { progressWrap.style.display = "none"; progressBar.style.width = "0%"; }, 1500);
+        setTimeout(function() { progressWrap.style.display = "none"; progressBar.style.width = "0%"; }, 1500);
       } else {
-        showAlert("alert-error", `${errors.length} file(s) failed: ${errors.join(", ")}.`);
+        showAlert("alert-error", errors.length + " file(s) failed: " + errors.join(", "));
         uploadBtn.disabled = false;
       }
 
@@ -288,23 +242,21 @@
       }
     });
 
-    // ── Chat ─────────────────────────────────────────────────────────────────
+    var chatSection  = document.getElementById("chat-section");
+    var chatSelect   = document.getElementById("chat-file-select");
+    var chatMessages = document.getElementById("chat-messages");
+    var chatInput    = document.getElementById("chat-input");
+    var chatSend     = document.getElementById("chat-send");
 
-    const chatSection  = document.getElementById("chat-section");
-    const chatSelect   = document.getElementById("chat-file-select");
-    const chatMessages = document.getElementById("chat-messages");
-    const chatInput    = document.getElementById("chat-input");
-    const chatSend     = document.getElementById("chat-send");
-
-    let currentKey         = null;
-    let chatHistory        = [];
-    let perFileChatHistory = {};
+    var currentKey         = null;
+    var chatHistory        = [];
+    var perFileChatHistory = {};
 
     function refreshChatDropdown() {
-      chatSelect.innerHTML = '<option value="">— select a file to chat about —</option>';
-      uploadedKeys.forEach(({ key, name }) => {
-        const opt = document.createElement("option");
-        opt.value = key; opt.textContent = name;
+      chatSelect.innerHTML = "<option value=\"\">— select a file to chat about —</option>";
+      uploadedKeys.forEach(function(item) {
+        var opt = document.createElement("option");
+        opt.value = item.key; opt.textContent = item.name;
         chatSelect.appendChild(opt);
       });
     }
@@ -326,21 +278,21 @@
       chatSend.disabled  = !key;
     }
 
-    chatSelect.addEventListener("change", () => switchFile(chatSelect.value));
+    chatSelect.addEventListener("change", function() { switchFile(chatSelect.value); });
 
     function renderHistory() {
       chatMessages.innerHTML = "";
       if (!chatHistory.length) {
-        chatMessages.innerHTML = `<span style="color:var(--text-muted);font-size:0.82rem;align-self:center;">Ask anything about the file…</span>`;
+        chatMessages.innerHTML = "<span style=\"color:#9ca3af;font-size:0.82rem;align-self:center;\">Ask anything about the file...</span>";
         return;
       }
-      chatHistory.forEach(msg => { if (msg.role !== "system") addBubble(msg.role, msg.content); });
+      chatHistory.forEach(function(msg) { if (msg.role !== "system") addBubble(msg.role, msg.content); });
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     function addBubble(role, text, id) {
-      const div = document.createElement("div");
-      div.className = `chat-bubble ${role}`;
+      var div = document.createElement("div");
+      div.className = "chat-bubble " + role;
       if (id) div.id = id;
       div.textContent = text;
       chatMessages.appendChild(div);
@@ -349,33 +301,29 @@
     }
 
     async function sendQuestion() {
-      const q = chatInput.value.trim();
+      var q = chatInput.value.trim();
       if (!q || !currentKey) return;
       chatInput.value = ""; chatSend.disabled = true; chatInput.disabled = true;
-      const placeholder = chatMessages.querySelector("span");
+      var placeholder = chatMessages.querySelector("span");
       if (placeholder) placeholder.remove();
       addBubble("user", q);
       chatHistory.push({ role: "user", content: q });
-      const thinkingEl = addBubble("thinking", "Thinking…", "thinking-bubble");
+      var thinkingEl = addBubble("thinking", "Thinking...", "thinking-bubble");
 
       try {
-        const res = await fetch(CHAT_ENDPOINT, {
+        var res = await fetch(CHAT_ENDPOINT, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            s3_key:       currentKey,
-            question:     q,
-            chat_history: chatHistory.slice(0, -1),
-          }),
+          body: JSON.stringify({ s3_key: currentKey, question: q, chat_history: chatHistory.slice(0, -1) }),
         });
-        if (!res.ok) throw new Error(`Server error ${res.status}`);
-        const { answer } = await res.json();
+        if (!res.ok) throw new Error("Server error " + res.status);
+        var data = await res.json();
         thinkingEl.remove();
-        addBubble("assistant", answer);
-        chatHistory.push({ role: "assistant", content: answer });
+        addBubble("assistant", data.answer);
+        chatHistory.push({ role: "assistant", content: data.answer });
         perFileChatHistory[currentKey] = chatHistory;
       } catch (err) {
         thinkingEl.remove();
-        addBubble("assistant", "⚠️ Sorry, something went wrong. Please try again.");
+        addBubble("assistant", "Sorry, something went wrong. Please try again.");
         chatHistory.pop();
         console.error("Chat error:", err);
       }
@@ -383,5 +331,7 @@
     }
 
     chatSend.addEventListener("click", sendQuestion);
-    chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendQuestion(); } });
-  </scr
+    chatInput.addEventListener("keydown", function(e) { if (e.key === "Enter") { e.preventDefault(); sendQuestion(); } });
+  </script>
+</body>
+</html>
