@@ -66,6 +66,27 @@
     .chat-bubble.assistant { align-self: flex-start; background: #e5e7eb; color: #111827; border-bottom-left-radius: 3px; }
     .chat-bubble.thinking  { align-self: flex-start; background: #e5e7eb; color: #6b7280; font-style: italic; }
 
+    /* ── Mic button ─────────────────────────────────────────────────── */
+    .textarea-with-mic { position: relative; margin-bottom: 8px; }
+    .textarea-with-mic .chat-textarea { padding-right: 46px; }
+    .mic-btn {
+      position: absolute; right: 10px; bottom: 10px;
+      width: 30px; height: 30px; border-radius: 50%;
+      border: none; background: #e5e7eb; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+      padding: 0;
+    }
+    .mic-btn:hover { background: #d1d5db; }
+    .mic-btn svg { width: 16px; height: 16px; fill: #6b7280; transition: fill 0.15s; }
+    .mic-btn.listening { background: #fee2e2; animation: mic-pulse 1.2s infinite; }
+    .mic-btn.listening svg { fill: #ef4444; }
+    .mic-btn:disabled { opacity: 0.35; cursor: not-allowed; animation: none; }
+    @keyframes mic-pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.15); }
+    }
+
     /* ── Shared textarea + send button ──────────────────────────────── */
     .chat-textarea-wrap { margin-bottom: 8px; }
     .chat-textarea {
@@ -165,8 +186,11 @@
           <option value="">— select a file —</option>
         </select>
         <div class="chat-messages" id="chat-messages"></div>
-        <div class="chat-textarea-wrap">
+        <div class="textarea-with-mic">
           <textarea class="chat-textarea" id="chat-input" placeholder="Type your question here… (Enter to send, Shift+Enter for new line)" disabled rows="3"></textarea>
+          <button class="mic-btn" id="mic-perfile" title="Click to speak" type="button">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 17.93V21h2v-2.07A8.001 8.001 0 0 0 20 11h-2a6 6 0 0 1-12 0H4a8.001 8.001 0 0 0 7 7.93z"/></svg>
+          </button>
         </div>
         <button class="btn btn-primary chat-send-btn" id="chat-send" disabled>Send</button>
         <p class="chat-hint">Powered by GPT-4o mini. Your API key stays server-side.</p>
@@ -175,8 +199,11 @@
       <!-- Tab 2: Ask All Files -->
       <div class="chat-tab-panel" id="tab-allfiles">
         <div class="all-files-info" id="all-files-info">Upload files above to ask questions across all of them at once.</div>
-        <div class="chat-textarea-wrap">
+        <div class="textarea-with-mic">
           <textarea class="chat-textarea" id="all-input" placeholder="Ask a question that spans all your uploaded files — trends, comparisons, lookups across records…" rows="4"></textarea>
+          <button class="mic-btn" id="mic-all" title="Click to speak" type="button">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 17.93V21h2v-2.07A8.001 8.001 0 0 0 20 11h-2a6 6 0 0 1-12 0H4a8.001 8.001 0 0 0 7 7.93z"/></svg>
+          </button>
         </div>
         <div class="all-btn-row">
           <button class="btn btn-primary" id="all-send-combined">Combined Answer</button>
@@ -587,6 +614,84 @@
     allInput.addEventListener("keydown", function(e) {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askCombined(); }
     });
+
+    /* ── Speech-to-text (Web Speech API) ──────────────────────────── */
+    (function() {
+      var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        // Browser doesn't support it — hide the mic buttons gracefully
+        var btns = document.querySelectorAll(".mic-btn");
+        btns.forEach(function(b) { b.style.display = "none"; });
+        return;
+      }
+
+      function makeMic(btnId, targetTextareaId) {
+        var btn      = document.getElementById(btnId);
+        var textarea = document.getElementById(targetTextareaId);
+        var recog    = new SpeechRecognition();
+        recog.lang        = "en-US";
+        recog.continuous  = true;   // keep listening until explicitly stopped
+        recog.interimResults = true;
+
+        var isListening   = false;
+        var baseText      = "";     // text already in box before this session
+        var interimSpan   = "";     // live interim text (replaced on each interim result)
+
+        recog.onstart = function() {
+          isListening = true;
+          baseText    = textarea.value;
+          btn.classList.add("listening");
+          btn.title   = "Click to stop";
+        };
+
+        recog.onresult = function(e) {
+          var interim = "";
+          var final   = "";
+          for (var i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+              final += e.results[i][0].transcript;
+            } else {
+              interim += e.results[i][0].transcript;
+            }
+          }
+          if (final) baseText += (baseText && !baseText.endsWith(" ") ? " " : "") + final.trim();
+          textarea.value = baseText + (interim ? " " + interim : "");
+          textarea.scrollTop = textarea.scrollHeight;
+        };
+
+        recog.onerror = function(e) {
+          console.warn("Speech recognition error:", e.error);
+          stopListening();
+        };
+
+        recog.onend = function() {
+          if (isListening) {
+            // continuous mode ended unexpectedly — restart
+            try { recog.start(); } catch(e) { stopListening(); }
+          }
+        };
+
+        function stopListening() {
+          isListening = false;
+          btn.classList.remove("listening");
+          btn.title = "Click to speak";
+          try { recog.stop(); } catch(e) {}
+          // clean up any trailing space
+          textarea.value = textarea.value.trim();
+        }
+
+        btn.addEventListener("click", function() {
+          if (isListening) {
+            stopListening();
+          } else {
+            try { recog.start(); } catch(e) { console.warn("Could not start recognition:", e); }
+          }
+        });
+      }
+
+      makeMic("mic-perfile", "chat-input");
+      makeMic("mic-all",     "all-input");
+    })();
   </script>
 </body>
 </html>
