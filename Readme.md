@@ -22,7 +22,9 @@ This was built with no backend server, no database we manage, and no AI framewor
 | 8 | AI chatbot for uploaded files | Lambda + OpenRouter + GPT-4o mini |
 | 9 | Auto file summary on chat open | Same Lambda, auto-triggered |
 | 10 | Per-file independent chat history | Browser memory (JavaScript) |
-| 11 | API key never exposed to browser | Lambda environment variable |
+| 11 | Ask All Files — cross-file parallel queries | Browser fires one request per file simultaneously |
+| 12 | Two-tab chat UI (Per File / Ask All) | Vanilla JavaScript tab switching |
+| 13 | API key never exposed to browser | Lambda environment variable |
 
 ---
 
@@ -168,11 +170,17 @@ Excel (.xlsx, .xls), PDF, Word (.docx), CSV, TXT. Multiple files can be selected
 ## The File Chat Feature — How the AI Agent Works
 
 ### Non-technical explanation
-After uploading a file, you can open a chat window and ask questions about it. Type a question like "what is the highest value in column B?" and the AI reads the actual file content and answers you. Each file has its own conversation — you can switch between files and pick up where you left off. When you first open a file for chat, it automatically gives you a 2-3 sentence summary of what the file contains.
+After uploading files, the chat section appears with two tabs:
 
-There is no AI framework (no LangChain, no AutoGen, no agents SDK). It's three steps in one Lambda function: read file → extract text → ask GPT.
+**Per File Chat** — select one file, get an automatic 2-3 sentence summary of what it contains, then ask follow-up questions in a full conversation. The chat remembers the full conversation history for each file separately. Switch files and pick up right where you left off.
+
+**Ask All Files** — type a single question and every uploaded file is queried at the same time, in parallel. Results appear as cards, one per file, with the filename labelled. This is useful when your files are similar in structure (e.g. daily student data, weekly reports) and you want to compare answers across dates or versions — you'd get all answers in one go instead of asking each file one by one.
+
+There is no AI framework (no LangChain, no AutoGen, no agents SDK). It's three steps in one Lambda function: read file → extract text → ask GPT. The "Ask All" feature reuses the exact same Lambda — the browser just calls it once per file simultaneously.
 
 ### Architecture of the Chat System
+
+#### Tab 1: Per File Chat
 
 ```
 Browser (upload.html)
@@ -182,7 +190,7 @@ Browser (upload.html)
   │
   │── POST /chat ──────────────────────────────────────────────────►
   │   {                                                             │
-  │     s3_key: "hospital-data.xlsx",                              │
+  │     s3_key: "student-data-2025-06-19.xlsx",                    │
   │     question: "Summarize this file...",                    Lambda (s3-chat)
   │     chat_history: []                                           │
   │   }                                                            │
@@ -203,6 +211,30 @@ Browser (upload.html)
   │  Browser displays answer as chat bubble
   │  Browser stores { role: "assistant", content: answer } in perFileChatHistory
 ```
+
+#### Tab 2: Ask All Files
+
+```
+Browser (upload.html)
+  │
+  │  User types: "How many students scored above 90?"
+  │  → Browser fires ONE request per uploaded file, all at the same time
+  │
+  ├── POST /chat { s3_key: "student-data-2025-06-19.xlsx", question: "..." } ──►  Lambda
+  ├── POST /chat { s3_key: "student-data-2025-06-20.xlsx", question: "..." } ──►  Lambda
+  └── POST /chat { s3_key: "student-data-2025-06-21.xlsx", question: "..." } ──►  Lambda
+                                                                                    │
+                                              (all three run in parallel on AWS)    │
+                                                                                    │
+  ◄── { answer: "14 students scored above 90" }  ←  2025-06-19.xlsx ───────────────┘
+  ◄── { answer: "9 students scored above 90"  }  ←  2025-06-20.xlsx
+  ◄── { answer: "21 students scored above 90" }  ←  2025-06-21.xlsx
+  │
+  │  Browser renders one answer card per file, labelled with the filename
+  │  No conversation history is kept — each "Ask All" question is fresh
+```
+
+The Lambda function (`s3-chat`) is identical for both modes. The only difference is that in Ask All mode, the browser calls it once per file simultaneously using `Promise.all()`, rather than one at a time.
 
 ### How Text Is Extracted From Each File Type
 

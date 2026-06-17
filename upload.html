@@ -41,8 +41,23 @@
     .btn-row { display: flex; gap: 10px; }
     .btn-row .btn { flex: 1; }
 
+    /* ── Chat section wrapper ───────────────────────────────────────── */
     .chat-section { display: none; margin-top: 28px; border-top: 1px solid var(--border); padding-top: 20px; }
-    .chat-section h2 { font-size: 1rem; font-weight: 600; margin: 0 0 6px; color: var(--text); }
+    .chat-section h2 { font-size: 1rem; font-weight: 600; margin: 0 0 14px; color: var(--text); }
+
+    /* ── Tabs ────────────────────────────────────────────────────────── */
+    .chat-tabs { display: flex; gap: 0; margin-bottom: 18px; border-bottom: 2px solid var(--border); }
+    .chat-tab-btn {
+      flex: 1; padding: 9px 12px; font-size: 0.85rem; font-weight: 500;
+      background: none; border: none; border-bottom: 2px solid transparent;
+      margin-bottom: -2px; cursor: pointer; color: var(--text-muted);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .chat-tab-btn.active { color: var(--primary, #6366f1); border-bottom-color: var(--primary, #6366f1); }
+    .chat-tab-panel { display: none; }
+    .chat-tab-panel.active { display: block; }
+
+    /* ── Per-file chat ───────────────────────────────────────────────── */
     .chat-file-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
     .chat-file-select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: #111827; font-size: 0.85rem; margin-bottom: 16px; box-sizing: border-box; cursor: pointer; }
     .chat-messages { min-height: 160px; max-height: 360px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; background: #fafafa; }
@@ -50,29 +65,40 @@
     .chat-bubble.user      { align-self: flex-end; background: var(--primary, #6366f1); color: #fff; border-bottom-right-radius: 3px; }
     .chat-bubble.assistant { align-self: flex-start; background: #e5e7eb; color: #111827; border-bottom-left-radius: 3px; }
     .chat-bubble.thinking  { align-self: flex-start; background: #e5e7eb; color: #6b7280; font-style: italic; }
+
+    /* ── Shared textarea + send button ──────────────────────────────── */
     .chat-textarea-wrap { margin-bottom: 8px; }
-    #chat-input {
-      display: block;
-      width: 100%;
-      box-sizing: border-box;
-      padding: 12px 14px;
-      border: 1.5px solid #d1d5db;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-family: inherit;
-      color: #111827;
-      background: #ffffff;
-      resize: none;
-      min-height: 72px;
-      line-height: 1.5;
-      outline: none;
+    .chat-textarea {
+      display: block; width: 100%; box-sizing: border-box;
+      padding: 12px 14px; border: 1.5px solid #d1d5db; border-radius: 10px;
+      font-size: 0.9rem; font-family: inherit; color: #111827; background: #ffffff;
+      resize: none; min-height: 72px; line-height: 1.5; outline: none;
       transition: border-color 0.15s;
     }
-    #chat-input:focus { border-color: var(--primary, #6366f1); }
-    #chat-input:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
-    #chat-input::placeholder { color: #9ca3af; }
-    #chat-send { width: 100%; padding: 11px; font-size: 0.9rem; }
+    .chat-textarea:focus { border-color: var(--primary, #6366f1); }
+    .chat-textarea:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
+    .chat-textarea::placeholder { color: #9ca3af; }
+    .chat-send-btn { width: 100%; padding: 11px; font-size: 0.9rem; }
     .chat-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
+
+    /* ── Ask All tab ────────────────────────────────────────────────── */
+    .all-files-info { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; padding: 10px 12px; background: #f0f4ff; border-radius: 8px; border-left: 3px solid var(--primary, #6366f1); }
+    .all-results { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+    .all-result-card {
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    .all-result-card .card-file-name {
+      padding: 8px 12px; font-size: 0.78rem; font-weight: 600; background: #f3f4f6;
+      color: #374151; border-bottom: 1px solid var(--border);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .all-result-card .card-body {
+      padding: 12px; font-size: 0.84rem; line-height: 1.55; color: #111827;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .all-result-card .card-body.loading { color: #6b7280; font-style: italic; }
+    .all-result-card .card-body.error   { color: #ef4444; }
+    .all-no-files { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 24px 0; }
   </style>
 </head>
 <body>
@@ -110,17 +136,38 @@
     </div>
 
     <div class="chat-section" id="chat-section">
-      <h2>Ask questions about your file</h2>
-      <p class="chat-file-label">Switch between uploaded files:</p>
-      <select class="chat-file-select" id="chat-file-select">
-        <option value="">— select a file —</option>
-      </select>
-      <div class="chat-messages" id="chat-messages"></div>
-      <div class="chat-textarea-wrap">
-        <textarea id="chat-input" placeholder="Type your question here… (Enter to send, Shift+Enter for new line)" disabled rows="3"></textarea>
+      <h2>Ask questions about your files</h2>
+
+      <!-- Tab buttons -->
+      <div class="chat-tabs">
+        <button class="chat-tab-btn active" id="tab-btn-perfile" onclick="switchTab('perfile')">Per File Chat</button>
+        <button class="chat-tab-btn"        id="tab-btn-allfiles" onclick="switchTab('allfiles')">Ask All Files</button>
       </div>
-      <button class="btn btn-primary" id="chat-send" disabled>Send</button>
-      <p class="chat-hint">Powered by GPT-4o mini via OpenRouter. Your API key stays server-side.</p>
+
+      <!-- Tab 1: Per File -->
+      <div class="chat-tab-panel active" id="tab-perfile">
+        <p class="chat-file-label">Select a file to chat with:</p>
+        <select class="chat-file-select" id="chat-file-select">
+          <option value="">— select a file —</option>
+        </select>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" id="chat-input" placeholder="Type your question here… (Enter to send, Shift+Enter for new line)" disabled rows="3"></textarea>
+        </div>
+        <button class="btn btn-primary chat-send-btn" id="chat-send" disabled>Send</button>
+        <p class="chat-hint">Powered by GPT-4o mini. Your API key stays server-side.</p>
+      </div>
+
+      <!-- Tab 2: Ask All Files -->
+      <div class="chat-tab-panel" id="tab-allfiles">
+        <div class="all-files-info" id="all-files-info">Upload files above to ask questions across all of them at once.</div>
+        <div class="all-results" id="all-results"></div>
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" id="all-input" placeholder="Ask a question across all uploaded files… (Enter to send)" rows="3"></textarea>
+        </div>
+        <button class="btn btn-primary chat-send-btn" id="all-send">Ask All Files</button>
+        <p class="chat-hint">Each file is queried in parallel. Answers appear as cards below your question.</p>
+      </div>
     </div>
   </div>
 
@@ -267,13 +314,35 @@
     var chatMessages = document.getElementById("chat-messages");
     var chatInput    = document.getElementById("chat-input");
     var chatSend     = document.getElementById("chat-send");
+    var allInput     = document.getElementById("all-input");
+    var allSend      = document.getElementById("all-send");
+    var allResults   = document.getElementById("all-results");
+    var allFilesInfo = document.getElementById("all-files-info");
 
     var currentKey         = null;
     var chatHistory        = [];
     var perFileChatHistory = {};
 
+    /* ── Tab switching ─────────────────────────────────────────────── */
+    function switchTab(tab) {
+      document.getElementById("tab-perfile").classList.toggle("active", tab === "perfile");
+      document.getElementById("tab-allfiles").classList.toggle("active", tab === "allfiles");
+      document.getElementById("tab-btn-perfile").classList.toggle("active", tab === "perfile");
+      document.getElementById("tab-btn-allfiles").classList.toggle("active", tab === "allfiles");
+      if (tab === "allfiles") updateAllFilesInfo();
+    }
+
+    function updateAllFilesInfo() {
+      if (!uploadedKeys.length) {
+        allFilesInfo.textContent = "No files uploaded yet. Upload files above and then ask questions across all of them.";
+      } else {
+        allFilesInfo.textContent = uploadedKeys.length + " file" + (uploadedKeys.length > 1 ? "s" : "") + " available: " + uploadedKeys.map(function(f) { return f.name; }).join(", ");
+      }
+    }
+
+    /* ── Per-file dropdown + start chat ───────────────────────────── */
     function refreshChatDropdown() {
-      chatSelect.innerHTML = "<option value=\"\">— select a file to chat about —</option>";
+      chatSelect.innerHTML = "<option value=\"\">— select a file —</option>";
       uploadedKeys.forEach(function(item) {
         var opt = document.createElement("option");
         opt.value = item.key; opt.textContent = item.name;
@@ -283,6 +352,7 @@
 
     function startChatWith(key, name) {
       chatSection.style.display = "block";
+      switchTab("perfile");
       chatSelect.value = key;
       switchFile(key);
       chatInput.focus();
@@ -296,15 +366,12 @@
       renderHistory();
       chatInput.disabled = !key;
       chatSend.disabled  = !key;
-      if (key && chatHistory.length === 0) {
-        autoSummarize(key);
-      }
+      if (key && chatHistory.length === 0) autoSummarize(key);
     }
 
     function autoSummarize(key) {
       var summaryQ = "Please give a 2-3 sentence summary of what this file contains, then end with: 'Feel free to ask me anything about it!'";
-      chatInput.disabled = true;
-      chatSend.disabled  = true;
+      chatInput.disabled = true; chatSend.disabled = true;
       addBubble("thinking", "Reading your file and generating a summary…", "thinking-bubble");
       fetch(CHAT_ENDPOINT, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -324,9 +391,7 @@
         addBubble("assistant", "File loaded. Ask me anything about it!");
         console.error("Auto-summary error:", err);
       }).finally(function() {
-        chatInput.disabled = false;
-        chatSend.disabled  = false;
-        chatInput.focus();
+        chatInput.disabled = false; chatSend.disabled = false; chatInput.focus();
       });
     }
 
@@ -335,7 +400,7 @@
     function renderHistory() {
       chatMessages.innerHTML = "";
       if (!chatHistory.length) {
-        chatMessages.innerHTML = "<span style=\"color:#9ca3af;font-size:0.82rem;align-self:center;\">Ask anything about the file...</span>";
+        chatMessages.innerHTML = "<span style=\"color:#9ca3af;font-size:0.82rem;align-self:center;\">Select a file above to get started…</span>";
         return;
       }
       chatHistory.forEach(function(msg) { if (msg.role !== "system") addBubble(msg.role, msg.content); });
@@ -361,7 +426,6 @@
       addBubble("user", q);
       chatHistory.push({ role: "user", content: q });
       var thinkingEl = addBubble("thinking", "Thinking...", "thinking-bubble");
-
       try {
         var res = await fetch(CHAT_ENDPOINT, {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -385,6 +449,70 @@
     chatSend.addEventListener("click", sendQuestion);
     chatInput.addEventListener("keydown", function(e) {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
+    });
+
+    /* ── Ask All Files ─────────────────────────────────────────────── */
+    async function askAllFiles() {
+      var q = allInput.value.trim();
+      if (!q) return;
+      if (!uploadedKeys.length) { updateAllFilesInfo(); return; }
+
+      allSend.disabled = true;
+      allInput.disabled = true;
+
+      // Show the question + empty cards for each file immediately
+      allResults.innerHTML = "";
+      var questionEl = document.createElement("div");
+      questionEl.style.cssText = "font-size:0.82rem;font-weight:600;color:#374151;margin-bottom:10px;padding:10px 12px;background:#eef2ff;border-radius:8px;";
+      questionEl.textContent = "Q: " + q;
+      allResults.appendChild(questionEl);
+
+      var cardBodies = [];
+      uploadedKeys.forEach(function(item, i) {
+        var card = document.createElement("div");
+        card.className = "all-result-card";
+        var header = document.createElement("div");
+        header.className = "card-file-name";
+        header.textContent = item.name;
+        var body = document.createElement("div");
+        body.className = "card-body loading";
+        body.textContent = "Asking…";
+        card.appendChild(header);
+        card.appendChild(body);
+        allResults.appendChild(card);
+        cardBodies.push({ body: body, key: item.key });
+      });
+
+      allResults.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+      // Fire all requests in parallel
+      var promises = cardBodies.map(function(item) {
+        return fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ s3_key: item.key, question: q, chat_history: [] }),
+        }).then(function(res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        }).then(function(data) {
+          item.body.textContent = data.answer;
+          item.body.className = "card-body";
+        }).catch(function(err) {
+          item.body.textContent = "Error: could not get a response.";
+          item.body.className = "card-body error";
+          console.error("Ask-all error for", item.key, err);
+        });
+      });
+
+      await Promise.all(promises);
+      allSend.disabled = false;
+      allInput.disabled = false;
+      allInput.value = "";
+      allInput.focus();
+    }
+
+    allSend.addEventListener("click", askAllFiles);
+    allInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAllFiles(); }
     });
   </script>
 </body>
