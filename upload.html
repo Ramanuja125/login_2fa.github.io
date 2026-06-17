@@ -80,9 +80,10 @@
     .chat-bubble.thinking  { align-self: flex-start; background: var(--border, #e5e7eb); color: var(--text-muted, #888); font-style: italic; }
     .chat-input-row { display: flex; gap: 8px; }
     .chat-input-row input {
-      flex: 1; padding: 9px 12px; border-radius: 8px;
-      border: 1px solid var(--border); font-size: 0.875rem;
-      color: var(--text); background: var(--surface, #fff); box-sizing: border-box;
+      flex: 1; padding: 10px 14px; border-radius: 8px;
+      border: 1px solid #d1d5db; font-size: 0.9rem;
+      color: #111827; background: #ffffff; box-sizing: border-box;
+      min-width: 0; height: 42px;
     }
     .chat-input-row input:focus { outline: none; border-color: var(--primary); }
     .chat-input-row .btn { flex: 0 0 auto; padding: 9px 18px; font-size: 0.875rem; }
@@ -383,6 +384,4 @@
 
     chatSend.addEventListener("click", sendQuestion);
     chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendQuestion(); } });
-  </script>
-</body>
-</html>
+  </scr
