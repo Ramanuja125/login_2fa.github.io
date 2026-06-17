@@ -54,6 +54,30 @@
     .chat-input-row input:focus { outline: none; border-color: var(--primary); }
     .chat-input-row .btn { flex: 0 0 auto; padding: 10px 18px; font-size: 0.875rem; }
     .chat-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
+
+    /* ── Chat input text visibility fix ─────────────────────────────────────── */
+    #chat-input {
+      color: #111827 !important;
+      -webkit-text-fill-color: #111827 !important;
+      background-color: #ffffff !important;
+      color-scheme: light;
+      opacity: 1 !important;
+    }
+    #chat-input:disabled {
+      -webkit-text-fill-color: #9ca3af !important;
+      color: #9ca3af !important;
+      opacity: 0.7 !important;
+    }
+    #chat-input:focus {
+      -webkit-text-fill-color: #111827 !important;
+      color: #111827 !important;
+    }
+    #chat-input:-webkit-autofill,
+    #chat-input:-webkit-autofill:hover,
+    #chat-input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #111827 !important;
+      -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+    }
   </style>
 </head>
 <body>
@@ -97,7 +121,7 @@
       </select>
       <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Ask a question about the file…" disabled style="color:#111827!important;background:#fff!important;-webkit-text-fill-color:#111827!important;" />
+        <input type="text" id="chat-input" placeholder="Ask a question about the file…" disabled />
         <button class="btn btn-primary" id="chat-send" disabled>Send</button>
       </div>
       <p class="chat-hint">Powered by Gemini Flash. Your API key stays server-side.</p>
