@@ -276,6 +276,12 @@
       renderHistory();
       chatInput.disabled = !key;
       chatSend.disabled  = !key;
+      if (key) {
+        chatInput.style.color = "#111827";
+        chatInput.style.background = "#ffffff";
+        chatInput.style.webkitTextFillColor = "#111827";
+        chatInput.style.opacity = "1";
+      }
     }
 
     chatSelect.addEventListener("change", function() { switchFile(chatSelect.value); });
