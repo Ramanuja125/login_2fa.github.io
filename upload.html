@@ -83,10 +83,25 @@
 
     /* ── Ask All tab ────────────────────────────────────────────────── */
     .all-files-info { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; padding: 10px 12px; background: #f0f4ff; border-radius: 8px; border-left: 3px solid var(--primary, #6366f1); }
+    .all-btn-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .all-btn-row .btn { flex: 1; padding: 10px; font-size: 0.875rem; }
     .all-results { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
-    .all-result-card {
-      border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    /* Combined answer box */
+    .combined-answer {
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 14px;
     }
+    .combined-answer .combined-header {
+      padding: 8px 12px; font-size: 0.78rem; font-weight: 600; background: #eef2ff;
+      color: #4338ca; border-bottom: 1px solid #c7d2fe;
+    }
+    .combined-answer .combined-body {
+      padding: 14px; font-size: 0.85rem; line-height: 1.6; color: #111827;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .combined-answer .combined-body.loading { color: #6b7280; font-style: italic; }
+    .combined-answer .combined-body.error   { color: #ef4444; }
+    /* Per-file cards */
+    .all-result-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
     .all-result-card .card-file-name {
       padding: 8px 12px; font-size: 0.78rem; font-weight: 600; background: #f3f4f6;
       color: #374151; border-bottom: 1px solid var(--border);
@@ -98,7 +113,6 @@
     }
     .all-result-card .card-body.loading { color: #6b7280; font-style: italic; }
     .all-result-card .card-body.error   { color: #ef4444; }
-    .all-no-files { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 24px 0; }
   </style>
 </head>
 <body>
@@ -161,12 +175,18 @@
       <!-- Tab 2: Ask All Files -->
       <div class="chat-tab-panel" id="tab-allfiles">
         <div class="all-files-info" id="all-files-info">Upload files above to ask questions across all of them at once.</div>
-        <div class="all-results" id="all-results"></div>
         <div class="chat-textarea-wrap">
-          <textarea class="chat-textarea" id="all-input" placeholder="Ask a question across all uploaded files… (Enter to send)" rows="3"></textarea>
+          <textarea class="chat-textarea" id="all-input" placeholder="e.g. Find patients older than 65 whose name starts with Ram and show their highest blood pressure across all reports…" rows="4"></textarea>
         </div>
-        <button class="btn btn-primary chat-send-btn" id="all-send">Ask All Files</button>
-        <p class="chat-hint">Each file is queried in parallel. Answers appear as cards below your question.</p>
+        <div class="all-btn-row">
+          <button class="btn btn-primary" id="all-send-combined">Combined Answer</button>
+          <button class="btn btn-outline" id="all-send-perfile">Ask Each File</button>
+        </div>
+        <div id="all-results"></div>
+        <p class="chat-hint">
+          <strong>Combined Answer</strong> — all files are merged and the AI reasons across all of them at once. Best for cross-file questions.<br>
+          <strong>Ask Each File</strong> — each file is queried independently in parallel. Best for per-file comparisons.
+        </p>
       </div>
     </div>
   </div>
@@ -314,10 +334,11 @@
     var chatMessages = document.getElementById("chat-messages");
     var chatInput    = document.getElementById("chat-input");
     var chatSend     = document.getElementById("chat-send");
-    var allInput     = document.getElementById("all-input");
-    var allSend      = document.getElementById("all-send");
-    var allResults   = document.getElementById("all-results");
-    var allFilesInfo = document.getElementById("all-files-info");
+    var allInput          = document.getElementById("all-input");
+    var allSendCombined   = document.getElementById("all-send-combined");
+    var allSendPerFile    = document.getElementById("all-send-perfile");
+    var allResults        = document.getElementById("all-results");
+    var allFilesInfo      = document.getElementById("all-files-info");
 
     var currentKey         = null;
     var chatHistory        = [];
@@ -451,33 +472,86 @@
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
     });
 
-    /* ── Ask All Files ─────────────────────────────────────────────── */
-    async function askAllFiles() {
-      var q = allInput.value.trim();
-      if (!q) return;
-      if (!uploadedKeys.length) { updateAllFilesInfo(); return; }
+    /* ── Ask All Files — helpers ───────────────────────────────────── */
+    function allSetBusy(busy) {
+      allSendCombined.disabled = busy;
+      allSendPerFile.disabled  = busy;
+      allInput.disabled        = busy;
+    }
 
-      allSend.disabled = true;
-      allInput.disabled = true;
-
-      // Show the question + empty cards for each file immediately
+    function allShowQuestion(q) {
       allResults.innerHTML = "";
-      var questionEl = document.createElement("div");
-      questionEl.style.cssText = "font-size:0.82rem;font-weight:600;color:#374151;margin-bottom:10px;padding:10px 12px;background:#eef2ff;border-radius:8px;";
-      questionEl.textContent = "Q: " + q;
-      allResults.appendChild(questionEl);
+      var qEl = document.createElement("div");
+      qEl.style.cssText = "font-size:0.82rem;font-weight:600;color:#374151;margin-bottom:12px;padding:10px 12px;background:#eef2ff;border-radius:8px;";
+      qEl.textContent = "Q: " + q;
+      allResults.appendChild(qEl);
+    }
+
+    /* Combined Answer — one request with all files merged ──────────── */
+    async function askCombined() {
+      var q = allInput.value.trim();
+      if (!q || !uploadedKeys.length) { updateAllFilesInfo(); return; }
+
+      allSetBusy(true);
+      allShowQuestion(q);
+
+      // Build the combined answer box immediately (loading state)
+      var box = document.createElement("div");
+      box.className = "combined-answer";
+      var header = document.createElement("div");
+      header.className = "combined-header";
+      header.textContent = "Combined answer across " + uploadedKeys.length + " file" + (uploadedKeys.length > 1 ? "s" : "");
+      var body = document.createElement("div");
+      body.className = "combined-body loading";
+      body.textContent = "Reading all files and reasoning across them…";
+      box.appendChild(header);
+      box.appendChild(body);
+      allResults.appendChild(box);
+      allResults.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            s3_keys: uploadedKeys.map(function(f) { return f.key; }),
+            question: q,
+            chat_history: [],
+          }),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var data = await res.json();
+        body.textContent = data.answer;
+        body.className = "combined-body";
+      } catch (err) {
+        body.textContent = "Error: could not get a combined response. Please try again.";
+        body.className = "combined-body error";
+        console.error("Combined ask error:", err);
+      }
+
+      allSetBusy(false);
+      allInput.value = "";
+      allInput.focus();
+    }
+
+    /* Ask Each File — parallel per-file cards (existing behaviour) ─── */
+    async function askPerFile() {
+      var q = allInput.value.trim();
+      if (!q || !uploadedKeys.length) { updateAllFilesInfo(); return; }
+
+      allSetBusy(true);
+      allShowQuestion(q);
 
       var cardBodies = [];
-      uploadedKeys.forEach(function(item, i) {
+      uploadedKeys.forEach(function(item) {
         var card = document.createElement("div");
         card.className = "all-result-card";
-        var header = document.createElement("div");
-        header.className = "card-file-name";
-        header.textContent = item.name;
+        var hdr = document.createElement("div");
+        hdr.className = "card-file-name";
+        hdr.textContent = item.name;
         var body = document.createElement("div");
         body.className = "card-body loading";
         body.textContent = "Asking…";
-        card.appendChild(header);
+        card.appendChild(hdr);
         card.appendChild(body);
         allResults.appendChild(card);
         cardBodies.push({ body: body, key: item.key });
@@ -485,7 +559,6 @@
 
       allResults.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
-      // Fire all requests in parallel
       var promises = cardBodies.map(function(item) {
         return fetch(CHAT_ENDPOINT, {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -499,20 +572,20 @@
         }).catch(function(err) {
           item.body.textContent = "Error: could not get a response.";
           item.body.className = "card-body error";
-          console.error("Ask-all error for", item.key, err);
+          console.error("Per-file ask error:", item.key, err);
         });
       });
 
       await Promise.all(promises);
-      allSend.disabled = false;
-      allInput.disabled = false;
+      allSetBusy(false);
       allInput.value = "";
       allInput.focus();
     }
 
-    allSend.addEventListener("click", askAllFiles);
+    allSendCombined.addEventListener("click", askCombined);
+    allSendPerFile.addEventListener("click", askPerFile);
     allInput.addEventListener("keydown", function(e) {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAllFiles(); }
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askCombined(); }
     });
   </script>
 </body>
