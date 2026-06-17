@@ -1,9 +1,0 @@
-[
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["PUT"],
-    "AllowedOrigins": ["https://ramanuja125.github.io"],
-    "ExposeHeaders":  ["ETag"],
-    "MaxAgeSeconds":  3000
-  }
-]
