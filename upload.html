@@ -22,94 +22,71 @@
       background: rgba(99, 102, 241, 0.04);
     }
     .upload-area svg {
-      width: 40px;
-      height: 40px;
-      stroke: var(--text-muted);
-      fill: none;
-      stroke-width: 1.5;
+      width: 40px; height: 40px;
+      stroke: var(--text-muted); fill: none; stroke-width: 1.5;
       margin-bottom: 10px;
     }
-    .upload-area p {
-      margin: 0;
-      font-size: 0.875rem;
-      color: var(--text-muted);
-    }
-    .upload-area .file-count {
-      margin-top: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--primary);
-    }
+    .upload-area p { margin: 0; font-size: 0.875rem; color: var(--text-muted); }
+    .upload-area .file-count { margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: var(--primary); }
     #file-input { display: none; }
 
-    /* File list */
-    .file-list {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 16px;
-      display: none;
-    }
+    .file-list { list-style: none; padding: 0; margin: 0 0 16px; display: none; }
     .file-list li {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.82rem;
-      padding: 6px 10px;
-      border-radius: 6px;
-      margin-bottom: 4px;
-      background: var(--surface, rgba(0,0,0,0.04));
-      gap: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.82rem; padding: 6px 10px; border-radius: 6px; margin-bottom: 4px;
+      background: var(--surface, rgba(0,0,0,0.04)); gap: 8px;
     }
-    .file-list li .fname {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--text);
-    }
-    .file-list li .fsize {
-      color: var(--text-muted);
-      white-space: nowrap;
-    }
-    .file-list li .fstatus {
-      font-size: 0.75rem;
-      white-space: nowrap;
-      min-width: 60px;
-      text-align: right;
-    }
-    .file-list li .fstatus.pending  { color: var(--text-muted); }
+    .file-list li .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+    .file-list li .fsize { color: var(--text-muted); white-space: nowrap; }
+    .file-list li .fstatus { font-size: 0.75rem; white-space: nowrap; min-width: 60px; text-align: right; }
+    .file-list li .fstatus.pending   { color: var(--text-muted); }
     .file-list li .fstatus.uploading { color: var(--primary); }
-    .file-list li .fstatus.done     { color: #22c55e; }
-    .file-list li .fstatus.error    { color: #ef4444; }
+    .file-list li .fstatus.done      { color: #22c55e; cursor: pointer; text-decoration: underline; }
+    .file-list li .fstatus.error     { color: #ef4444; }
 
-    /* Overall progress */
-    .progress-bar-wrap {
-      width: 100%;
-      background: var(--border);
-      border-radius: 99px;
-      height: 6px;
-      margin: 12px 0;
-      display: none;
-    }
-    .progress-bar-fill {
-      height: 6px;
-      border-radius: 99px;
-      background: var(--primary);
-      width: 0%;
-      transition: width 0.3s;
-    }
-    .upload-status {
-      text-align: center;
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      min-height: 18px;
-    }
-    .btn-row {
-      display: flex;
-      gap: 10px;
-    }
+    .progress-bar-wrap { width: 100%; background: var(--border); border-radius: 99px; height: 6px; margin: 12px 0; display: none; }
+    .progress-bar-fill { height: 6px; border-radius: 99px; background: var(--primary); width: 0%; transition: width 0.3s; }
+    .upload-status { text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; min-height: 18px; }
+    .btn-row { display: flex; gap: 10px; }
     .btn-row .btn { flex: 1; }
+
+    /* Chat section */
+    .chat-section {
+      display: none;
+      margin-top: 28px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+    .chat-section h2 { font-size: 1rem; font-weight: 600; margin: 0 0 12px; color: var(--text); }
+    .chat-file-select {
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface, #fff);
+      color: var(--text); font-size: 0.85rem; margin-bottom: 14px;
+      box-sizing: border-box;
+    }
+    .chat-messages {
+      min-height: 120px; max-height: 320px; overflow-y: auto;
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; margin-bottom: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+      background: var(--surface, rgba(0,0,0,0.02));
+    }
+    .chat-bubble {
+      max-width: 88%; padding: 9px 13px; border-radius: 12px;
+      font-size: 0.84rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+    }
+    .chat-bubble.user      { align-self: flex-end; background: var(--primary, #6366f1); color: #fff; border-bottom-right-radius: 3px; }
+    .chat-bubble.assistant { align-self: flex-start; background: var(--border, #e5e7eb); color: var(--text, #111); border-bottom-left-radius: 3px; }
+    .chat-bubble.thinking  { align-self: flex-start; background: var(--border, #e5e7eb); color: var(--text-muted, #888); font-style: italic; }
+    .chat-input-row { display: flex; gap: 8px; }
+    .chat-input-row input {
+      flex: 1; padding: 9px 12px; border-radius: 8px;
+      border: 1px solid var(--border); font-size: 0.875rem;
+      color: var(--text); background: var(--surface, #fff); box-sizing: border-box;
+    }
+    .chat-input-row input:focus { outline: none; border-color: var(--primary); }
+    .chat-input-row .btn { flex: 0 0 auto; padding: 9px 18px; font-size: 0.875rem; }
+    .chat-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
   </style>
 </head>
 <body>
@@ -128,28 +105,41 @@
     <div id="alert-error"   class="alert alert-error"   role="alert"></div>
     <div id="alert-success" class="alert alert-success" role="alert"></div>
 
-    <!-- Drop zone -->
     <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <p>Click to choose files, or drag &amp; drop here</p>
-      <p style="font-size:0.75rem; margin-top:4px;">You can select multiple files at once</p>
+      <p style="font-size:0.75rem; margin-top:4px;">Supports Excel, PDF, Word, CSV, TXT — multiple files at once</p>
       <div class="file-count" id="file-count"></div>
     </div>
     <input type="file" id="file-input" multiple />
 
-    <!-- Selected file list -->
     <ul class="file-list" id="file-list"></ul>
 
-    <!-- Overall progress -->
     <div class="progress-bar-wrap" id="progress-wrap">
       <div class="progress-bar-fill" id="progress-bar"></div>
     </div>
     <div class="upload-status" id="upload-status"></div>
 
-    <!-- Buttons -->
     <div class="btn-row">
       <button class="btn btn-primary" id="upload-btn" disabled>Upload</button>
       <button class="btn btn-outline" onclick="signOut()">Sign Out</button>
+    </div>
+
+    <!-- Chat section -->
+    <div class="chat-section" id="chat-section">
+      <h2>💬 Ask questions about your file</h2>
+
+      <select class="chat-file-select" id="chat-file-select">
+        <option value="">— select a file to chat about —</option>
+      </select>
+
+      <div class="chat-messages" id="chat-messages"></div>
+
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Ask a question about the file…" disabled />
+        <button class="btn btn-primary" id="chat-send" disabled>Send</button>
+      </div>
+      <p class="chat-hint">Powered by Gemini Flash via OpenRouter. Your API key stays server-side.</p>
     </div>
   </div>
 
@@ -162,9 +152,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="auth.js"></script>
   <script>
-    // ── CONFIG ────────────────────────────────────────────────────
-    const API_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url";
-    // ─────────────────────────────────────────────────────────────
+    // ── CONFIG ────────────────────────────────────────────────────────────────
+    const API_ENDPOINT  = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url";
+    const CHAT_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/chat";  // ← update after AWS Step 4
+    // ─────────────────────────────────────────────────────────────────────────
 
     const user = getSessionUser();
     if (!user) {
@@ -183,10 +174,11 @@
     const uploadStatus = document.getElementById("upload-status");
 
     let selectedFiles = [];
+    let uploadedKeys  = [];  // { key, name } for each successfully uploaded file
 
     function formatSize(bytes) {
-      if (bytes < 1024)       return bytes + " B";
-      if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + " KB";
+      if (bytes < 1024)    return bytes + " B";
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
       return (bytes / 1048576).toFixed(1) + " MB";
     }
 
@@ -195,12 +187,7 @@
       hideAlert("alert-error");
       hideAlert("alert-success");
       uploadStatus.textContent = "";
-
-      fileCountEl.textContent = selectedFiles.length === 1
-        ? "1 file selected"
-        : `${selectedFiles.length} files selected`;
-
-      // Build file list UI
+      fileCountEl.textContent  = selectedFiles.length === 1 ? "1 file selected" : `${selectedFiles.length} files selected`;
       fileListEl.innerHTML = "";
       selectedFiles.forEach((f, i) => {
         const li = document.createElement("li");
@@ -215,33 +202,26 @@
       uploadBtn.disabled = selectedFiles.length === 0;
     }
 
-    fileInput.addEventListener("change", () => {
-      if (fileInput.files.length) setFiles(fileInput.files);
-    });
-
+    fileInput.addEventListener("change", () => { if (fileInput.files.length) setFiles(fileInput.files); });
     dropZone.addEventListener("dragover",  (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
     dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("drag-over"));
     dropZone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("drag-over");
+      e.preventDefault(); dropZone.classList.remove("drag-over");
       if (e.dataTransfer.files.length) setFiles(e.dataTransfer.files);
     });
 
     async function uploadOne(file, index) {
       const statusEl = document.getElementById(`fstatus-${index}`);
-      statusEl.textContent  = "Uploading…";
-      statusEl.className    = "fstatus uploading";
+      statusEl.textContent = "Uploading…";
+      statusEl.className   = "fstatus uploading";
 
-      // Get presigned POST data from Lambda
       const res = await fetch(API_ENDPOINT, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ filename: file.name }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name }),
       });
       if (!res.ok) throw new Error(`Could not get upload URL for "${file.name}"`);
-      const { upload_url, fields } = await res.json();
+      const { upload_url, fields, key } = await res.json();
 
-      // Build form data — file field MUST be last
       const formData = new FormData();
       Object.entries(fields).forEach(([k, v]) => formData.append(k, v));
       formData.append("file", file);
@@ -249,26 +229,30 @@
       const uploadRes = await fetch(upload_url, { method: "POST", body: formData });
       if (!uploadRes.ok) throw new Error(`S3 rejected "${file.name}" (${uploadRes.status})`);
 
-      statusEl.textContent = "✓ Done";
+      statusEl.textContent = "✓ Chat";
       statusEl.className   = "fstatus done";
+      statusEl.title       = "Click to chat about this file";
+      statusEl.onclick     = () => startChatWith(key, file.name);
+
+      return key;
     }
 
     uploadBtn.addEventListener("click", async () => {
       if (!selectedFiles.length) return;
-
       uploadBtn.disabled = true;
-      hideAlert("alert-error");
-      hideAlert("alert-success");
+      hideAlert("alert-error"); hideAlert("alert-success");
       progressWrap.style.display = "block";
       progressBar.style.width    = "0%";
 
       let done = 0;
-      const errors = [];
+      const errors  = [];
+      const newKeys = [];
 
       for (let i = 0; i < selectedFiles.length; i++) {
         uploadStatus.textContent = `Uploading ${i + 1} of ${selectedFiles.length}…`;
         try {
-          await uploadOne(selectedFiles[i], i);
+          const key = await uploadOne(selectedFiles[i], i);
+          newKeys.push({ key, name: selectedFiles[i].name });
           done++;
         } catch (err) {
           errors.push(selectedFiles[i].name);
@@ -285,24 +269,120 @@
       if (errors.length === 0) {
         showAlert("alert-success",
           done === 1
-            ? `✓ 1 file uploaded successfully.`
-            : `✓ ${done} files uploaded successfully.`
+            ? '✓ 1 file uploaded. Click "✓ Chat" next to it to ask questions.'
+            : `✓ ${done} files uploaded. Click "✓ Chat" next to any file to ask questions.`
         );
-        // Reset after all done
-        selectedFiles = [];
-        fileInput.value = "";
-        fileCountEl.textContent = "";
-        fileListEl.style.display = "none";
-        fileListEl.innerHTML = "";
-        uploadBtn.disabled = true;
+        fileInput.value = ""; fileCountEl.textContent = ""; uploadBtn.disabled = true;
         setTimeout(() => { progressWrap.style.display = "none"; progressBar.style.width = "0%"; }, 1500);
       } else {
-        showAlert("alert-error",
-          `${errors.length} file(s) failed to upload: ${errors.join(", ")}. Others succeeded.`
-        );
+        showAlert("alert-error", `${errors.length} file(s) failed: ${errors.join(", ")}.`);
         uploadBtn.disabled = false;
       }
+
+      if (newKeys.length) {
+        uploadedKeys = uploadedKeys.concat(newKeys);
+        refreshChatDropdown();
+        document.getElementById("chat-section").style.display = "block";
+        if (newKeys.length === 1) startChatWith(newKeys[0].key, newKeys[0].name);
+      }
     });
+
+    // ── Chat ─────────────────────────────────────────────────────────────────
+
+    const chatSection  = document.getElementById("chat-section");
+    const chatSelect   = document.getElementById("chat-file-select");
+    const chatMessages = document.getElementById("chat-messages");
+    const chatInput    = document.getElementById("chat-input");
+    const chatSend     = document.getElementById("chat-send");
+
+    let currentKey         = null;
+    let chatHistory        = [];
+    let perFileChatHistory = {};
+
+    function refreshChatDropdown() {
+      chatSelect.innerHTML = '<option value="">— select a file to chat about —</option>';
+      uploadedKeys.forEach(({ key, name }) => {
+        const opt = document.createElement("option");
+        opt.value = key; opt.textContent = name;
+        chatSelect.appendChild(opt);
+      });
+    }
+
+    function startChatWith(key, name) {
+      chatSection.style.display = "block";
+      chatSelect.value = key;
+      switchFile(key);
+      chatInput.focus();
+      chatSection.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function switchFile(key) {
+      if (currentKey) perFileChatHistory[currentKey] = chatHistory;
+      currentKey  = key;
+      chatHistory = perFileChatHistory[key] || [];
+      renderHistory();
+      chatInput.disabled = !key;
+      chatSend.disabled  = !key;
+    }
+
+    chatSelect.addEventListener("change", () => switchFile(chatSelect.value));
+
+    function renderHistory() {
+      chatMessages.innerHTML = "";
+      if (!chatHistory.length) {
+        chatMessages.innerHTML = `<span style="color:var(--text-muted);font-size:0.82rem;align-self:center;">Ask anything about the file…</span>`;
+        return;
+      }
+      chatHistory.forEach(msg => { if (msg.role !== "system") addBubble(msg.role, msg.content); });
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function addBubble(role, text, id) {
+      const div = document.createElement("div");
+      div.className = `chat-bubble ${role}`;
+      if (id) div.id = id;
+      div.textContent = text;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return div;
+    }
+
+    async function sendQuestion() {
+      const q = chatInput.value.trim();
+      if (!q || !currentKey) return;
+      chatInput.value = ""; chatSend.disabled = true; chatInput.disabled = true;
+      const placeholder = chatMessages.querySelector("span");
+      if (placeholder) placeholder.remove();
+      addBubble("user", q);
+      chatHistory.push({ role: "user", content: q });
+      const thinkingEl = addBubble("thinking", "Thinking…", "thinking-bubble");
+
+      try {
+        const res = await fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            s3_key:       currentKey,
+            question:     q,
+            chat_history: chatHistory.slice(0, -1),
+          }),
+        });
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const { answer } = await res.json();
+        thinkingEl.remove();
+        addBubble("assistant", answer);
+        chatHistory.push({ role: "assistant", content: answer });
+        perFileChatHistory[currentKey] = chatHistory;
+      } catch (err) {
+        thinkingEl.remove();
+        addBubble("assistant", "⚠️ Sorry, something went wrong. Please try again.");
+        chatHistory.pop();
+        console.error("Chat error:", err);
+      }
+      chatSend.disabled = false; chatInput.disabled = false; chatInput.focus();
+    }
+
+    chatSend.addEventListener("click", sendQuestion);
+    chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendQuestion(); } });
   </script>
 </body>
 </html>
