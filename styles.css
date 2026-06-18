@@ -3,6 +3,10 @@
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+html {
+  font-size: 22px;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -43,9 +47,9 @@ body {
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 48px 44px;
+  padding: 68px 72px;
   width: 100%;
-  max-width: 480px;
+  max-width: 740px;
 }
 
 /* ---- Logo / Header ---- */
@@ -55,10 +59,10 @@ body {
 }
 
 .card-header .logo {
-  width: 58px;
-  height: 58px;
+  width: 76px;
+  height: 76px;
   background: var(--primary);
-  border-radius: 14px;
+  border-radius: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -66,13 +70,13 @@ body {
 }
 
 .card-header .logo svg {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   fill: #fff;
 }
 
 .card-header h1 {
-  font-size: 1.75rem;
+  font-size: 2.1rem;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 4px;
@@ -253,10 +257,10 @@ input.error {
 }
 
 .otp-group input {
-  width: 56px;
-  height: 66px;
+  width: 70px;
+  height: 82px;
   text-align: center;
-  font-size: 1.6rem;
+  font-size: 1.9rem;
   font-weight: 700;
   border: 1.5px solid var(--border);
   border-radius: 7px;
@@ -270,8 +274,8 @@ input.error {
 
 /* ---- Success page ---- */
 .success-icon {
-  width: 72px;
-  height: 72px;
+  width: 86px;
+  height: 86px;
   background: #f0fdf4;
   border-radius: 50%;
   display: flex;
@@ -281,8 +285,8 @@ input.error {
 }
 
 .success-icon svg {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   stroke: var(--success);
   fill: none;
   stroke-width: 2.5;
