@@ -1,10 +1,12 @@
 # Secure Portal — Full Architecture & Documentation
 
+---
+
 ## What Is This?
 
-A HIPAA-conscious, two-factor authenticated file upload portal hosted entirely for free on GitHub Pages. After logging in with email, password, and a one-time code sent to your inbox, users can upload medical or clinical files (Excel, PDF, Word, CSV, TXT) directly to AWS S3 — and then **have a live conversation with the contents of those files** using an AI assistant, without exposing any API keys to the browser.
+A HIPAA-conscious, two-factor authenticated portal hosted entirely for free on GitHub Pages. After logging in with email, password, and a one-time code sent to your inbox, users can either **upload new files** or **browse files already stored in the cloud** — and then have a live AI conversation with the contents of those files, without any API keys ever reaching the browser.
 
-This was built with no backend server, no database we manage, and no AI framework like LangChain. Everything runs on managed cloud services stitched together.
+Built with no backend server, no database we manage, and no AI framework. Everything runs on managed cloud services stitched together with clean, minimal code.
 
 ---
 
@@ -17,14 +19,17 @@ This was built with no backend server, no database we manage, and no AI framewor
 | 3 | Two-factor login (password + OTP) | Firebase + EmailJS |
 | 4 | Password reset via email | Firebase built-in |
 | 5 | Secure session management | Browser sessionStorage |
-| 6 | Multi-file upload to AWS S3 | Pre-signed POST URLs via Lambda |
-| 7 | Drag-and-drop file upload UI | Vanilla JavaScript |
-| 8 | AI chatbot for uploaded files | Lambda + OpenRouter + GPT-4o mini |
-| 9 | Auto file summary on chat open | Same Lambda, auto-triggered |
-| 10 | Per-file independent chat history | Browser memory (JavaScript) |
-| 11 | Ask All Files — cross-file parallel queries | Browser fires one request per file simultaneously |
-| 12 | Two-tab chat UI (Per File / Ask All) | Vanilla JavaScript tab switching |
-| 13 | API key never exposed to browser | Lambda environment variable |
+| 6 | Mode selection after login — Upload or Load Stored | Vanilla JavaScript |
+| 7 | Multi-file upload to AWS S3 | Pre-signed POST URLs via Lambda |
+| 8 | Drag-and-drop file upload UI | Vanilla JavaScript |
+| 9 | Load stored files — browse bucket contents with checkboxes | Lambda list_files + S3 list_objects_v2 |
+| 10 | AI chatbot — Per File tab | Lambda + OpenRouter + GPT-4o mini |
+| 11 | Auto file summary when chat opens | Same Lambda, auto-triggered |
+| 12 | Per-file independent conversation history | Browser memory (JavaScript) |
+| 13 | Ask All Files tab — Combined Answer | All files merged in one Lambda call |
+| 14 | Ask All Files tab — Ask Each File | Parallel per-file Lambda calls |
+| 15 | Speech-to-text mic button | Browser Web Speech API (no external service) |
+| 16 | API key never exposed to browser | Lambda environment variable only |
 
 ---
 
@@ -32,16 +37,17 @@ This was built with no backend server, no database we manage, and no AI framewor
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| Hosting | GitHub Pages | Serves all HTML/CSS/JS files for free |
-| Authentication | Firebase Auth | Stores and verifies email + password |
+| Hosting | GitHub Pages | Serves all HTML/CSS/JS files, free |
+| Authentication | Firebase Auth | Stores and verifies email + hashed password |
 | OTP Delivery | EmailJS | Sends 6-digit code to user's inbox |
 | Email Transport | Gmail SMTP (via EmailJS) | Actual email delivery |
-| Upload backend | AWS Lambda (Python 3.12) — `s3-upload-lambda` | Generates temporary S3 upload permissions |
-| Chat backend | AWS Lambda (Python 3.12) — `s3-chat` | Reads files from S3, extracts text, calls AI |
-| Lambda packages | AWS Lambda Layer — `s3-chat-layer` | openpyxl, pypdf, python-docx, xlrd |
-| API layer | AWS API Gateway (HTTP API) | HTTPS endpoints that trigger Lambdas |
-| File storage | AWS S3 | Stores uploaded files |
+| Upload backend | AWS Lambda — `s3-upload-lambda` (Python 3.12) | Generates temporary S3 upload permissions |
+| Chat + List backend | AWS Lambda — `s3-chat` (Python 3.12) | Reads files from S3, extracts text, lists bucket, calls AI |
+| Python packages | AWS Lambda Layer — `s3-chat-layer` | openpyxl, pypdf, python-docx, xlrd |
+| API layer | AWS API Gateway (HTTP API) | HTTPS endpoints for both Lambdas |
+| File storage | AWS S3 | Stores all uploaded files |
 | AI model | GPT-4o mini via OpenRouter | Answers questions about file contents |
+| Voice input | Browser Web Speech API | Speech-to-text, built into Chrome/Edge |
 | Frontend | HTML, CSS, Vanilla JS | All UI and browser-side logic |
 
 ---
@@ -49,288 +55,263 @@ This was built with no backend server, no database we manage, and no AI framewor
 ## Full System Architecture
 
 ```
-                  ┌─────────────────────────────────────────┐
-                  │           GitHub Pages                   │
-                  │         kanikayears.com                  │
-                  │                                          │
-                  │  index.html      → verify.html           │
-                  │  register.html                           │
-                  │  forgot-password.html                    │
-                  │  upload.html  ← (main page after login)  │
-                  └────┬──────────────────────┬─────────────┘
-                       │                      │
-         ┌─────────────▼──────┐    ┌──────────▼──────────────────────────┐
-         │  Firebase + EmailJS │    │     AWS API Gateway (HTTP API)       │
-         │                    │    │   aoqop7lkph.execute-api.us-east-2   │
-         │  - Auth (login)    │    │                                      │
-         │  - OTP (email)     │    │  POST /get-upload-url                │
-         │  - Password reset  │    │  POST /chat                          │
-         └────────────────────┘    └────────┬─────────────┬──────────────┘
-                                            │             │
-                               ┌────────────▼──┐   ┌──────▼─────────────┐
-                               │  Lambda        │   │  Lambda             │
-                               │  s3-upload-    │   │  s3-chat            │
-                               │  lambda        │   │                     │
-                               │                │   │  1. Get file from S3│
-                               │  Generates     │   │  2. Extract text    │
-                               │  pre-signed    │   │  3. Call OpenRouter │
-                               │  POST URL      │   │     → GPT-4o mini   │
-                               └────────┬───────┘   └──────┬─────────────┘
-                                        │                  │
-                                ┌───────▼──────────────────▼──────────────┐
-                                │              AWS S3                      │
-                                │   emr-lab-bucket-699092321120-us-east-2  │
-                                │   (files stored in bucket root)          │
-                                └──────────────────────────────────────────┘
+                  +------------------------------------------+
+                  |            GitHub Pages                  |
+                  |          kanikayears.com                 |
+                  |                                          |
+                  |  index.html      --> verify.html         |
+                  |  register.html                           |
+                  |  forgot-password.html                    |
+                  |  upload.html  <-- (main page after login)|
+                  +-----+-----------------------------+------+
+                        |                             |
+          +-------------+----------+   +--------------+----------------------------+
+          |  Firebase + EmailJS    |   |    AWS API Gateway (HTTP API)             |
+          |                        |   |  aoqop7lkph.execute-api.us-east-2         |
+          |  - Auth (login)        |   |                                           |
+          |  - OTP (email)         |   |  POST /get-upload-url                    |
+          |  - Password reset      |   |  POST /chat  (chat + list + combined)    |
+          +------------------------+   +---------+------------------+--------------+
+                                                 |                  |
+                                    +------------+------+  +--------+------------+
+                                    |  Lambda           |  |  Lambda             |
+                                    |  s3-upload-lambda |  |  s3-chat            |
+                                    |                   |  |                     |
+                                    |  Generates        |  |  - list_files       |
+                                    |  pre-signed       |  |  - single file chat |
+                                    |  POST URL         |  |  - combined chat    |
+                                    +------------+------+  +--------+------------+
+                                                 |                  |
+                                    +------------+------------------+------------+
+                                    |                  AWS S3                   |
+                                    |  emr-lab-bucket-699092321120-us-east-2    |
+                                    |  (all files stored in bucket root)        |
+                                    +-------------------------------------------+
 ```
 
 ---
 
-## Authentication Flow (Firebase + EmailJS)
+## User Journey (End to End)
 
-### Non-technical explanation
-Think of it as a double lock on the front door. The first key is your password. Once Firebase confirms it's right, a one-time code is immediately sent to your email. You enter that code on the next screen. Only if both are correct do you get in. Even if someone steals your password, they can't log in without also accessing your email.
+### Step 1 — Login with Two Factors
 
-### Registration
 ```
-1. User enters email + password on register.html
-2. Client checks password rules: 8+ characters, uppercase, lowercase, number, special character
-3. Firebase creates the account and stores a hashed (scrambled) password — we never see the real password
-4. Firebase sends an email verification link
-5. User is redirected to login page
-```
+index.html
+  User enters email + password
+  --> Firebase checks the password against its stored hash
+  --> JavaScript generates a random 6-digit code, stores it in the browser tab only
+  --> EmailJS sends the code to the user's email via Gmail SMTP
+  --> User is sent to verify.html
 
-### Login (2-Factor Flow)
-```
-1. User enters email + password on index.html
-2. Firebase verifies the password against its stored hash
-3. JavaScript generates a random 6-digit OTP (e.g. "847291") entirely in the browser
-4. OTP is saved to sessionStorage with a 10-minute expiry timestamp
-   → sessionStorage only lives in that browser tab, never sent to any server
-5. EmailJS sends the OTP to the user's email via Gmail SMTP
-6. User is redirected to verify.html
-7. User types the 6-digit code
-8. Browser checks: does it match? Is it still within 10 minutes?
-9. If yes → auth_user is saved to sessionStorage → upload.html
-10. If wrong or expired → user must log in again
+verify.html
+  User types the 6-digit code
+  --> Browser checks: does it match? Is it still within 10 minutes?
+  --> If yes: session is saved, user goes to upload.html
+  --> If wrong or expired: user must log in again
 ```
 
-### Password Reset
-```
-1. User enters email on forgot-password.html
-2. Firebase sends a reset link to that email
-3. User clicks link → Firebase's hosted reset page
-4. Firebase updates the stored password hash
-5. User is sent back to index.html
-```
-
-### Sign Out
-```
-1. User clicks "Sign Out"
-2. sessionStorage is cleared (auth_user removed from browser memory)
-3. Firebase signs out
-4. User is sent back to index.html
-```
+**Non-technical:** It's a double lock. Your password is the first key. A one-time code sent to your inbox is the second. Even if someone steals your password, they cannot log in without also accessing your email.
 
 ---
 
-## File Upload — How It Works
+### Step 2 — Choose a Mode
 
-### Non-technical explanation
-When you upload a file, your browser never talks directly to AWS using our credentials. Instead it asks our server (Lambda) "can I upload this file?" Lambda generates a one-time permission slip (pre-signed URL) that expires in 15 minutes. The browser uses that permission slip to put the file directly into S3. Lambda never touches the file itself during upload.
+After login, the upload page shows two options side by side:
 
-### Why Pre-Signed POST (not PUT)?
-We use `generate_presigned_post` specifically, not `generate_presigned_url("put_object")`. This matters because Lambda runs with temporary IAM credentials (keys starting with `ASIA`). There is a known bug in boto3 where `put_object` pre-signed URLs generate the wrong signature when temporary credentials are used, causing S3 to reject the upload with `SignatureDoesNotMatch`. The POST method was designed for browser uploads and works correctly with temporary credentials.
+**Upload Files** — choose files from your computer and send them to secure cloud storage. Supports Excel (.xlsx, .xls), PDF, Word (.docx), CSV, TXT. Multiple files at once, with drag-and-drop.
 
-### Why `addressing_style: "virtual"`?
-Without this, boto3 generates an S3 URL in the old "path style" format: `s3.amazonaws.com/bucket-name/file`. AWS is deprecating path-style URLs and responds with a `301 Redirect` to the new format. When a browser follows that redirect, it strips the CORS headers — so the upload silently fails. Setting `addressing_style: "virtual"` generates the new format upfront: `bucket-name.s3.us-east-2.amazonaws.com/file`.
+**Load Stored Files** — browse every file already in the S3 bucket. Files are shown as a scrollable list with checkboxes, file size, and upload date. Select any combination and click Load — they are ready to chat with immediately, no re-upload needed.
 
-### Upload Sequence
-```
-Browser                    API Gateway      Lambda            S3
-  │                             │              │               │
-  │── POST /get-upload-url ────►│              │               │
-  │   { filename: "data.xlsx" } │              │               │
-  │                             │── invoke ───►│               │
-  │                             │              │── presigned ──►│
-  │                             │              │   POST URL    │
-  │                             │◄── response ─│               │
-  │◄── { upload_url, fields } ──│              │               │
-  │                             │              │               │
-  │── POST upload_url ──────────────────────────────────────►│
-  │   (FormData: fields + file)                               │
-  │◄── 204 No Content ──────────────────────────────────────│
-```
-
-### File Support
-Excel (.xlsx, .xls), PDF, Word (.docx), CSV, TXT. Multiple files can be selected at once and are uploaded one by one, each getting its own pre-signed URL.
+Both modes feed into exactly the same chat interface. You can even mix: load some stored files, then switch back to Upload and add more — they all merge into one session.
 
 ---
 
-## The File Chat Feature — How the AI Agent Works
+### Step 3 — Chat With Your Files
 
-### Non-technical explanation
-After uploading files, the chat section appears with two tabs:
+The chat section has two tabs:
 
-**Per File Chat** — select one file, get an automatic 2-3 sentence summary of what it contains, then ask follow-up questions in a full conversation. The chat remembers the full conversation history for each file separately. Switch files and pick up right where you left off.
+#### Per File Chat
 
-**Ask All Files** — type a single question and every uploaded file is queried at the same time, in parallel. Results appear as cards, one per file, with the filename labelled. This is useful when your files are similar in structure (e.g. daily student data, weekly reports) and you want to compare answers across dates or versions — you'd get all answers in one go instead of asking each file one by one.
+Select one file from the dropdown. The AI automatically reads the file and gives you a 2-3 sentence summary of what it contains. Then ask any follow-up question. The full conversation is remembered for each file separately — switch to another file and back, and your conversation picks up exactly where it left off.
 
-There is no AI framework (no LangChain, no AutoGen, no agents SDK). It's three steps in one Lambda function: read file → extract text → ask GPT. The "Ask All" feature reuses the exact same Lambda — the browser just calls it once per file simultaneously.
+#### Ask All Files
 
-### Architecture of the Chat System
+Two buttons:
 
-#### Tab 1: Per File Chat
+**Combined Answer** — all uploaded/loaded files are merged together and sent to the AI in a single request. The AI sees all files at once and can reason across them. Use this for cross-file questions like "find patients older than 65 and show their highest values across all reports." This is the power mode — one coherent answer synthesised from everything.
 
-```
-Browser (upload.html)
-  │
-  │  User selects file from dropdown
-  │  → Browser auto-sends: "Summarize this file in 2-3 sentences"
-  │
-  │── POST /chat ──────────────────────────────────────────────────►
-  │   {                                                             │
-  │     s3_key: "student-data-2025-06-19.xlsx",                    │
-  │     question: "Summarize this file...",                    Lambda (s3-chat)
-  │     chat_history: []                                           │
-  │   }                                                            │
-  │                                                      1. boto3 s3.get_object()
-  │                                                         → downloads file bytes
-  │                                                                 │
-  │                                                      2. extract_text()
-  │                                                         → parses file by extension
-  │                                                         → returns plain text string
-  │                                                                 │
-  │                                                      3. call_openrouter()
-  │                                                         → builds messages array
-  │                                                         → POST to OpenRouter API
-  │                                                         → GPT-4o mini answers
-  │                                                                 │
-  │◄── { answer: "This file contains..." } ────────────────────────┘
-  │
-  │  Browser displays answer as chat bubble
-  │  Browser stores { role: "assistant", content: answer } in perFileChatHistory
-```
+**Ask Each File** — the same question is sent to every file simultaneously in parallel. Each file gets its own answer card labelled with the filename. Use this when you want to compare the same metric across files independently, such as "what was the total on this date?" across daily reports.
 
-#### Tab 2: Ask All Files
+#### Voice Input (Mic Button)
+
+Every question box has a small microphone icon in the corner. Click it, speak your question, and it types itself. The button pulses red while listening. Click again to stop. This uses the browser's built-in speech recognition — no external service, no API key, works entirely inside Chrome or Edge.
+
+---
+
+## How the AI Works — Technical Detail
+
+### The "Agent" — Three Steps, No Framework
+
+There is no LangChain, AutoGen, or any AI agents framework. The `s3-chat` Lambda does three things in sequence:
 
 ```
-Browser (upload.html)
-  │
-  │  User types: "How many students scored above 90?"
-  │  → Browser fires ONE request per uploaded file, all at the same time
-  │
-  ├── POST /chat { s3_key: "student-data-2025-06-19.xlsx", question: "..." } ──►  Lambda
-  ├── POST /chat { s3_key: "student-data-2025-06-20.xlsx", question: "..." } ──►  Lambda
-  └── POST /chat { s3_key: "student-data-2025-06-21.xlsx", question: "..." } ──►  Lambda
-                                                                                    │
-                                              (all three run in parallel on AWS)    │
-                                                                                    │
-  ◄── { answer: "14 students scored above 90" }  ←  2025-06-19.xlsx ───────────────┘
-  ◄── { answer: "9 students scored above 90"  }  ←  2025-06-20.xlsx
-  ◄── { answer: "21 students scored above 90" }  ←  2025-06-21.xlsx
-  │
-  │  Browser renders one answer card per file, labelled with the filename
-  │  No conversation history is kept — each "Ask All" question is fresh
+1. boto3 s3.get_object()    -- download the file bytes from S3
+2. extract_text()           -- parse the file and convert to plain text
+3. call_openrouter()        -- send text + question to GPT-4o mini, return answer
 ```
 
-The Lambda function (`s3-chat`) is identical for both modes. The only difference is that in Ask All mode, the browser calls it once per file simultaneously using `Promise.all()`, rather than one at a time.
+That's it. The "intelligence" comes entirely from GPT-4o mini. The Lambda is just the plumbing.
 
-### How Text Is Extracted From Each File Type
+### File Text Extraction
 
-| File Type | Library Used | Why |
+| File Type | Library | Why This Library |
 |---|---|---|
-| `.xlsx` (modern Excel) | openpyxl | Pure Python, reads the zip-based XML format used by Excel 2007+ |
-| `.xls` (old Excel 97-2003) | xlrd | openpyxl cannot read the old binary OLE2 format; xlrd is the fallback |
-| `.pdf` | pypdf | Pure Python PDF reader. We chose this over pdfplumber specifically because pdfplumber contains compiled C extensions (.so files) — those are compiled for a specific Python version and fail when the CloudShell Python version (3.13) doesn't match the Lambda Python version (3.12). pypdf is pure Python so it works regardless. |
+| `.xlsx` (Excel 2007+) | openpyxl | Pure Python, reads the zip-based XML format |
+| `.xls` (Excel 97-2003) | xlrd | openpyxl cannot read the old binary OLE2 format; xlrd is the fallback |
+| `.pdf` | pypdf | Pure Python. pdfplumber was tried first but has compiled C extensions that fail when CloudShell Python (3.13) doesn't match Lambda Python (3.12). pypdf has no compiled code. |
 | `.docx` | python-docx | Reads Word document XML |
-| `.csv` / `.txt` | built-in (decode) | No library needed — just decode bytes as UTF-8 |
+| `.csv` / `.txt` | built-in | Just decode bytes as UTF-8, no library needed |
 
-The extracted text is truncated to 60,000 characters before sending to the AI to stay within the model's context window.
+Single-file context limit: 60,000 characters (enough for large spreadsheets).
+Combined mode: 120,000 characters total, split equally across all files (e.g. 4 files = 30,000 chars each).
 
-### How Multi-Turn Chat Works
-Every time the user sends a message, the browser sends the full conversation history alongside the new question:
+### How Multi-Turn Conversation Works
+
+Every time you send a message, the full conversation history is re-sent alongside the new question. This is how all AI chat systems maintain memory — the model itself is stateless; context is rebuilt each call.
 
 ```javascript
-// In the browser (JavaScript)
+// Stored in the browser for each file
 perFileChatHistory = {
-  "hospital-data.xlsx": [
-    { role: "assistant", content: "This file contains readmission rates..." },
-    { role: "user",      content: "What is the highest value?" },
-    { role: "assistant", content: "The highest value is 0.99%..." },
-  ],
-  "patient-list.csv": [
+  "patient-records.xlsx": [
     { role: "assistant", content: "This file contains patient records..." },
+    { role: "user",      content: "Who is older than 65?" },
+    { role: "assistant", content: "The following patients are older than 65..." }
+  ],
+  "lab-results-06-17.pdf": [
+    { role: "assistant", content: "This file contains lab results from June 17..." }
   ]
 }
 ```
 
-When you switch files, the current conversation is saved and the other file's conversation is loaded. Each file has a completely separate memory.
-
-On the Lambda side, these messages are assembled into the format the AI model expects:
+On the Lambda side it becomes:
 
 ```python
 messages = [
-  { "role": "system",    "content": "You are a helpful assistant. FILE CONTENT:\n<full file text>" },
-  { "role": "assistant", "content": "This file contains readmission rates..." },
-  { "role": "user",      "content": "What is the highest value?" },
+  { "role": "system",    "content": "You are a helpful assistant. FILE CONTENT:\n..." },
+  { "role": "assistant", "content": "This file contains patient records..." },
+  { "role": "user",      "content": "Who is older than 65?" },
 ]
+# Sent to OpenRouter --> GPT-4o mini --> answer returned
 ```
 
-This is the standard way all chat AI systems maintain context — the entire conversation is re-sent each time.
+### Combined Mode — How All Files Are Merged
 
-### Security: How the API Key Never Reaches the Browser
-The OpenRouter API key (`sk-or-v1-...`) exists only as a Lambda environment variable. The browser never receives it — it only calls `/chat` on API Gateway, which invokes Lambda, and Lambda makes the actual OpenRouter request server-side. Even if someone opened DevTools on the page, they would find no key anywhere.
+When the browser sends a combined request, it passes an array of S3 keys:
+
+```json
+{
+  "s3_keys": ["patients-name.xlsx", "6-17-2026.pdf", "6-18-2026.pdf", "6-19-2026.pdf"],
+  "question": "Find patients older than 65 and their highest blood pressure across all reports"
+}
+```
+
+The Lambda fetches all four files from S3, extracts text from each, and assembles a single document:
+
+```
+============================================================
+FILE: patients-name.xlsx
+============================================================
+[full spreadsheet content, up to 30,000 chars]
+
+============================================================
+FILE: 6-17-2026.pdf
+============================================================
+[full PDF content, up to 30,000 chars]
+...
+```
+
+This combined text becomes the system prompt context. GPT-4o mini reads all of it and answers the cross-file question in one response.
+
+### Load Stored Files — How the Bucket Listing Works
+
+When the user selects "Load Stored Files", the browser sends:
+
+```json
+{ "action": "list_files" }
+```
+
+The Lambda runs `s3.list_objects_v2()` with a paginator (handles buckets with more than 1000 files), collects key, size, and last-modified date for every object, sorts newest first, and returns the list. The browser renders it as a checkbox list. No file content is downloaded at this stage — only metadata.
+
+### Security: API Key Never in the Browser
+
+```
+Browser                     API Gateway          Lambda              OpenRouter
+  |                              |                  |                    |
+  |-- POST /chat -------------->|                  |                    |
+  |   { s3_key, question }      |                  |                    |
+  |                             |-- invoke ------->|                    |
+  |                             |                  |-- POST (with key)->|
+  |                             |                  |  Authorization:    |
+  |                             |                  |  Bearer sk-or-v1.. |
+  |                             |                  |<-- { answer } -----|
+  |<-- { answer } -------------|                  |                    |
+```
+
+The OpenRouter key is an environment variable inside Lambda. It never appears in any HTML, JS, or GitHub file. DevTools inspection of the page will show no key.
 
 ---
 
-## AWS Setup — Detailed Technical Reference
+## AWS Setup — Step by Step
 
-### What Was Created on AWS
+### Resources Created
 
 | AWS Resource | Name | Purpose |
 |---|---|---|
-| S3 Bucket | `emr-lab-bucket-699092321120-us-east-2-an` | Stores uploaded files |
+| S3 Bucket | `emr-lab-bucket-699092321120-us-east-2-an` | Stores all uploaded files |
 | Lambda Function | `s3-upload-lambda` | Generates pre-signed upload URLs |
-| Lambda Function | `s3-chat` | File text extraction + AI chat |
+| Lambda Function | `s3-chat` | Chat, file listing, combined queries |
 | Lambda Layer | `s3-chat-layer` | Python packages for s3-chat |
 | API Gateway | HTTP API | HTTPS endpoints for both Lambdas |
-| IAM Role | `s3-upload-lambda-role` | Permissions for both Lambdas |
-| IAM Policy | `s3-put-emr-lab-bucket` | Allows s3:PutObject on the bucket |
-| IAM Policy | `s3-get-emr-lab-bucket` | Allows s3:GetObject on the bucket |
+| IAM Role | `s3-upload-lambda-role` | Shared permissions role for both Lambdas |
+| Inline Policy (on role) | `s3-put-emr-lab-bucket` | s3:PutObject — allows upload Lambda to write files |
+| Inline Policy (on role) | `s3-read-list-emr-lab-bucket` | s3:GetObject + s3:ListBucket — allows chat Lambda to read files and list the bucket |
 
 ---
 
 ### Step 1 — S3 Bucket
 
-The bucket `emr-lab-bucket-699092321120-us-east-2-an` was created in `us-east-2` (Ohio). The number in the name is the AWS account ID — this is a common naming pattern to ensure global uniqueness.
+Created in `us-east-2` (Ohio). The account ID in the name ensures global uniqueness.
 
-**CORS policy applied to the bucket** (allows the website to POST files directly):
+CORS policy (allows the website to POST directly to the bucket):
 ```json
-[
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["PUT", "POST"],
-    "AllowedOrigins": ["https://kanikayears.com"],
-    "ExposeHeaders": ["ETag"],
-    "MaxAgeSeconds": 3000
-  }
-]
+[{
+  "AllowedHeaders": ["*"],
+  "AllowedMethods": ["PUT", "POST"],
+  "AllowedOrigins": ["https://kanikayears.com"],
+  "ExposeHeaders": ["ETag"],
+  "MaxAgeSeconds": 3000
+}]
 ```
-`AllowedOrigins` must be an exact match — no trailing slash. This tells S3 "only accept uploads originating from kanikayears.com."
+
+The `AllowedOrigins` value must match exactly — no trailing slash.
 
 ---
 
 ### Step 2 — IAM Role and Policies
 
-**Why IAM roles?** Lambda cannot touch S3 without explicit permission. The role `s3-upload-lambda-role` is attached to both Lambda functions and grants them AWS permissions.
+Lambda functions cannot touch S3 without explicit permission. The role `s3-upload-lambda-role` is attached to both Lambda functions. All permissions are added as **inline policies directly on the role** (IAM → Roles → `s3-upload-lambda-role` → Permissions → Add permissions → Create inline policy).
 
-**Policy 1 — `s3-put-emr-lab-bucket`** (for the upload Lambda):
+You need exactly two inline policies on this role:
+
+---
+
+**Inline Policy 1 — `s3-put-emr-lab-bucket`**
+Allows the upload Lambda to write files into the bucket.
+
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [{
-    "Sid": "AllowS3Upload",
     "Effect": "Allow",
     "Action": "s3:PutObject",
     "Resource": "arn:aws:s3:::emr-lab-bucket-699092321120-us-east-2-an/*"
@@ -338,81 +319,99 @@ The bucket `emr-lab-bucket-699092321120-us-east-2-an` was created in `us-east-2`
 }
 ```
 
-**Policy 2 — `s3-get-emr-lab-bucket`** (added later, for the chat Lambda):
+---
+
+**Inline Policy 2 — `s3-read-list-emr-lab-bucket`**
+Allows the chat Lambda to read individual files and list the entire bucket contents.
+
 ```json
 {
   "Version": "2012-10-17",
-  "Statement": [{
-    "Sid": "AllowS3Read",
-    "Effect": "Allow",
-    "Action": "s3:GetObject",
-    "Resource": "arn:aws:s3:::emr-lab-bucket-699092321120-us-east-2-an/*"
-  }]
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::emr-lab-bucket-699092321120-us-east-2-an/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::emr-lab-bucket-699092321120-us-east-2-an"
+    }
+  ]
 }
 ```
 
-**What is an ARN?** ARN stands for Amazon Resource Name — it is AWS's universal identifier for any resource. The format is:
+**Critical distinction:** `s3:GetObject` targets objects inside the bucket — ARN ends with `/*`. `s3:ListBucket` targets the bucket itself — ARN has no `/*`. If `s3:ListBucket` is missing, the Load Stored Files feature returns a 500 error even though file reading and uploading work fine. This was the exact issue encountered: the policy initially only had `s3:GetObject`, and `s3:ListBucket` was added later to fix the Load Stored Files feature.
+
+---
+
+**What is an ARN?**
 ```
-arn:aws:s3:::bucket-name/*
-         ^   ^   ^
-         |   |   └── The bucket name (no region/account for S3 ARNs)
-         |   └────── Service (s3, lambda, iam, etc.)
-         └────────── AWS partition (always "aws" for standard regions)
+arn:aws:s3:::emr-lab-bucket-699092321120-us-east-2-an/*
+    ^^^  ^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |    |   Bucket name (S3 ARNs omit region and account ID)
+     |    Service name
+     AWS partition
 ```
-The `/*` at the end means "all objects inside the bucket." Without it, the policy would only apply to the bucket itself (listing), not the files inside. **When the chat Lambda's read policy was first created, it accidentally had the Lambda Layer ARN pasted in instead of the S3 bucket ARN — this caused `AccessDenied` errors until corrected.**
+
+The `/*` means "all objects inside the bucket." Without it, the policy covers only bucket-level actions (like listing), not individual file access. Early in the setup, the read policy had the Lambda Layer ARN accidentally pasted in instead of the S3 bucket ARN — this caused `AccessDenied` on every file read until corrected.
 
 ---
 
 ### Step 3 — Lambda Layer (s3-chat-layer)
 
-A Lambda Layer is a ZIP file containing Python packages that gets attached to a Lambda function. This is how we add `openpyxl`, `pypdf`, `python-docx`, and `xlrd` to Lambda without packaging them into the function ZIP itself.
+A Lambda Layer is a ZIP of Python packages shared across Lambda functions. This avoids packaging dependencies into the function ZIP itself.
 
-**These exact commands were run in AWS CloudShell** (the browser-based terminal inside the AWS Console):
+**Commands run in AWS CloudShell** (the browser terminal inside AWS Console):
 
 ```bash
-# 1. Create the directory structure Lambda expects
+# Lambda expects packages inside a folder named "python/"
 mkdir python
 
-# 2. Install all required packages into that directory
+# Install packages into that folder
 pip install openpyxl pypdf python-docx xlrd -t python/ --quiet
 
-# 3. Zip the directory
+# Zip it
 zip -r layer.zip python/
 
-# 4. Publish the layer to Lambda
+# Publish to Lambda
 aws lambda publish-layer-version \
   --layer-name s3-chat-layer \
   --zip-file fileb://layer.zip \
   --compatible-runtimes python3.12
 ```
 
-**Why `python/` directory name?** Lambda requires packages to be inside a folder named `python/` (for Python runtimes) so it knows where to look when the function runs.
+**Why CloudShell?** Lambda runs Python 3.12 on Amazon Linux. Packages with compiled C extensions (`.so` files) are version-specific. CloudShell also runs Amazon Linux, so packages installed there match Lambda's environment. A Mac or Windows machine would produce incompatible binaries.
 
-**Why did we use CloudShell?** Lambda runs Python 3.12 on Amazon Linux. Some Python packages contain compiled C extensions (`.so` files) that are specific to an OS and Python version. CloudShell also runs Amazon Linux, so packages installed there will be compatible with Lambda. If we had installed packages on a Mac or Windows machine, compiled extensions would fail with `invalid ELF header` or similar errors at runtime.
+**The pdfplumber problem:** pdfplumber was tried first but has compiled extensions. CloudShell at the time was Python 3.13 while Lambda is Python 3.12 — version mismatch caused import failures. Switched to pypdf which is pure Python and works anywhere.
 
-**The `pdfplumber` problem:** The first attempt used `pdfplumber` for PDF reading, but it contains compiled C extensions. CloudShell was running Python 3.13 at the time, and Lambda runs Python 3.12 — the compiled `.so` files are version-specific, so the layer crashed at import. We switched to `pypdf` which is 100% pure Python and works regardless of version.
-
-**The publish command outputs an ARN** like:
+The publish command returns an ARN like:
 ```
 arn:aws:lambda:us-east-2:699092321120:layer:s3-chat-layer:2
 ```
-This ARN is what you paste into the Lambda function's "Layers" section to attach the layer. The `:2` at the end is the version number — each time you republish, it increments.
+Paste this into the Lambda function's Layers section. The `:2` is the version — increments each publish.
 
 ---
 
 ### Step 4 — Lambda Functions
 
-**Function 1: `s3-upload-lambda`** (`lambda_function.py`)
-- Runtime: Python 3.12
-- Role: `s3-upload-lambda-role`
-- Environment variables: `BUCKET_NAME`, `BUCKET_REGION`, `ALLOWED_ORIGIN`
-- Does: receives a filename from the browser, sanitises it, generates a 15-minute pre-signed POST URL
+**`s3-upload-lambda`** (`lambda_function.py`)
+- Runtime: Python 3.12, Role: `s3-upload-lambda-role`
+- Env vars: `BUCKET_NAME`, `BUCKET_REGION`, `ALLOWED_ORIGIN`
+- Receives a filename, sanitises it, returns a 15-minute pre-signed POST URL
 
-**Function 2: `s3-chat`** (`chat_lambda_function.py`)
-- Runtime: Python 3.12
-- Role: `s3-upload-lambda-role` (same role, but with the GetObject policy added)
-- Layer: `s3-chat-layer` (attached so it can import openpyxl, pypdf, etc.)
-- Environment variables:
+**`s3-chat`** (`chat_lambda_function.py`)
+- Runtime: Python 3.12, Role: `s3-upload-lambda-role`, Layer: `s3-chat-layer`
+- Handles three actions based on what the browser sends:
+
+| Request body contains | Action |
+|---|---|
+| `action: "list_files"` | Lists all files in the S3 bucket (name, size, date) |
+| `s3_key: "file.xlsx"` | Single-file chat — reads one file, answers the question |
+| `s3_keys: ["a.xlsx", "b.pdf"]` | Combined chat — merges all files, answers once across all |
+
+- Env vars:
 
 | Variable | Value |
 |---|---|
@@ -421,62 +420,52 @@ This ARN is what you paste into the Lambda function's "Layers" section to attach
 | `ALLOWED_ORIGIN` | `https://kanikayears.com` |
 | `OPENROUTER_API_KEY` | `sk-or-v1-...` (never put this anywhere else) |
 
-- Does: downloads the file from S3, extracts text based on file type, builds the conversation history, calls OpenRouter API, returns the AI's answer
-
 ---
 
 ### Step 5 — API Gateway
 
-An HTTP API was created (not a REST API — HTTP APIs are simpler, cheaper, and faster). Two routes were added:
+HTTP API (simpler, cheaper, and faster than REST API). Two routes:
 
-| Route | Lambda | URL |
+| Route | Lambda | Endpoint |
 |---|---|---|
 | `POST /get-upload-url` | `s3-upload-lambda` | `https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url` |
 | `POST /chat` | `s3-chat` | `https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/chat` |
 
-HTTP APIs auto-deploy on every change, so there's no manual "deploy stage" step needed.
-
-**CORS** is handled inside the Lambda functions themselves (not at the API Gateway level) — each Lambda returns `Access-Control-Allow-Origin: https://kanikayears.com` in its response headers, and handles the browser's `OPTIONS` preflight request.
+HTTP APIs auto-deploy — no manual "Deploy Stage" step needed. CORS is handled inside the Lambda responses, not at the API Gateway level.
 
 ---
 
-## Firebase / Firestore Setup
+## Firebase & EmailJS Setup
 
-**Project:** `hipaa-877ca` in Firebase Console.
+### Firebase
 
-Firebase Authentication is the only Firebase service used — there is no Firestore database. Firebase stores:
-- Email address
-- Hashed password (Firebase handles hashing, we never see the plain password)
-- Email verification status
+Project: `hipaa-877ca`. Only Firebase Authentication is used — no Firestore database. Firebase stores email addresses and hashed passwords. We never see actual passwords.
 
-**Authorized Domains** (Firebase Console → Authentication → Settings → Authorized domains) must include:
-- `localhost` (for local testing)
-- `ramanuja125.github.io` (the GitHub Pages domain)
-- `kanikayears.com` (the custom domain)
+**Authorized Domains** (Firebase Console → Authentication → Settings → Authorized domains):
+- `localhost`
+- `ramanuja125.github.io`
+- `kanikayears.com`
 
-Without these, Firebase will reject sign-in attempts from those origins.
+Firebase will reject sign-ins from any domain not on this list.
 
-**The `auth.js` file** contains the Firebase config (apiKey, projectId, etc.) — these are safe to be public. Firebase API keys are not secret; they identify the project. Access is controlled by Authorized Domains and Firebase Security Rules, not by keeping the key private.
+The Firebase config in `auth.js` (apiKey, projectId, etc.) is safe to be public. These values identify the project but access is controlled by the Authorized Domains list, not by keeping the config secret.
 
----
+### EmailJS
 
-## EmailJS Setup
+Sends OTP codes from the browser without a backend server. Connected to Gmail via SMTP.
 
-EmailJS is a service that lets JavaScript send emails directly from the browser without a backend server. It connects to a Gmail account via SMTP and sends emails on your behalf.
-
-**Current account:** kanikayears@gmail.com
-
-| Config Value | ID |
+| Value | ID |
 |---|---|
+| Account | kanikayears@gmail.com |
 | Service ID | `service_xkqj0hk` |
 | Template ID | `template_itledcu` |
 | Public Key | `TTVqGUIKfCVoS2Sbz` |
 
-These are set in `auth.js`. The Public Key is safe to expose — it only allows sending emails through your own EmailJS templates, not reading or modifying anything.
+Set in `auth.js`. The Public Key is safe to expose — it only allows sending through your own templates.
 
-**Template variables used:** `{{to_email}}` and `{{otp_code}}` — set inside the EmailJS template editor at emailjs.com.
+Template variables: `{{to_email}}` and `{{otp_code}}` — configured in the EmailJS template editor.
 
-**If you need to rotate the Public Key:** log into emailjs.com → Account → API Keys → regenerate → update `EMAILJS_PUBLIC_KEY` in `auth.js`.
+To rotate the key: emailjs.com → Account → API Keys → regenerate → update `EMAILJS_PUBLIC_KEY` in `auth.js`.
 
 ---
 
@@ -484,57 +473,45 @@ These are set in `auth.js`. The Public Key is safe to expose — it only allows 
 
 ```
 /
-├── index.html              → Login page (email + password)
-├── register.html           → New user registration
-├── verify.html             → OTP code entry (2FA step)
-├── upload.html             → Post-login file upload + AI chat
-├── forgot-password.html    → Password reset
-├── styles.css              → Shared styles (all pages)
-├── auth.js                 → All Firebase + EmailJS logic
-├── lambda_function.py      → Code for s3-upload-lambda (upload URLs)
-├── chat_lambda_function.py → Code for s3-chat (file reading + AI)
-├── cors_policy.json        → S3 bucket CORS configuration
-└── README.md               → This file
++-- index.html              --> Login page (email + password)
++-- register.html           --> New user registration
++-- verify.html             --> OTP entry (2FA step)
++-- upload.html             --> Main page: mode selection, upload, load stored, AI chat
++-- forgot-password.html    --> Password reset
++-- styles.css              --> Shared styles across all pages
++-- auth.js                 --> All Firebase + EmailJS logic
++-- lambda_function.py      --> s3-upload-lambda: generates pre-signed upload URLs
++-- chat_lambda_function.py --> s3-chat: file reading, bucket listing, AI chat
++-- cors_policy.json        --> S3 bucket CORS configuration
++-- README.md               --> This file
 ```
 
 ---
 
-## Security Architecture Summary
+## Security Architecture
 
-| Concern | How It's Handled |
+| Concern | How It Is Handled |
 |---|---|
-| AWS credentials in browser | Never happen. Lambda generates temporary upload URLs. |
-| OpenRouter API key in browser | Never happens. Key lives only in Lambda environment variables. |
-| Password storage | Firebase handles it. Passwords are hashed (bcrypt). We never see them. |
-| OTP storage | Lives only in `sessionStorage` (browser tab memory). Never sent to any server. |
-| Session hijacking | Sessions live in `sessionStorage` — cleared when the tab closes. |
-| Pre-signed URL abuse | URLs expire in 15 minutes and are for a single file key. |
-| S3 files publicly readable | S3 bucket has "Block all public access" enabled. Files are private. |
-| Cross-origin attacks | CORS headers on both Lambda functions restrict requests to kanikayears.com only. |
+| AWS credentials in browser | Never happens — Lambda generates temporary upload URLs |
+| OpenRouter API key in browser | Never happens — key lives only in Lambda environment variables |
+| Password storage | Firebase hashes passwords — we never see them |
+| OTP storage | Lives only in sessionStorage (browser tab memory), expires in 10 minutes |
+| Session persistence | sessionStorage — clears automatically when the tab closes |
+| Pre-signed URL abuse | URLs expire in 15 minutes and are scoped to one specific file key |
+| S3 files publicly readable | Bucket has Block All Public Access enabled — files are private |
+| Cross-origin attacks | CORS headers on both Lambdas restrict requests to kanikayears.com only |
 
 ---
 
 ## How to Change Things
 
-### Change the AI model
-In `chat_lambda_function.py`, find this line:
-```python
-"model": "openai/gpt-4o-mini",
-```
-Replace with any model available on OpenRouter (e.g. `"anthropic/claude-3-haiku"`, `"google/gemini-flash-1.5"`). Redeploy the Lambda.
+**Change the AI model:** In `chat_lambda_function.py`, update `"model": "openai/gpt-4o-mini"` to any model on OpenRouter (e.g. `"anthropic/claude-3-haiku"`, `"google/gemini-flash-1.5"`). Redeploy the Lambda.
 
-### Change the S3 bucket
-1. Create a new bucket, apply `cors_policy.json` (update `AllowedOrigins` if domain changed)
-2. Update the IAM policies with the new bucket ARN
-3. Update `BUCKET_NAME` environment variable in both Lambda functions
+**Change the S3 bucket:** Create the new bucket, apply `cors_policy.json`, update the IAM policy ARNs, update `BUCKET_NAME` in both Lambda env vars.
 
-### Change the EmailJS account
-1. Create a new service on emailjs.com linked to your Gmail
-2. Create a template with `{{to_email}}` and `{{otp_code}}` variables
-3. Update `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY` in `auth.js`
+**Rotate the OpenRouter API key:** openrouter.ai → Keys → new key → update `OPENROUTER_API_KEY` in `s3-chat` env vars. No code changes needed.
 
-### Rotate the OpenRouter API key
-Go to openrouter.ai → Keys → create new → update `OPENROUTER_API_KEY` in the `s3-chat` Lambda environment variables. No code changes needed.
+**Rotate the EmailJS public key:** emailjs.com → Account → regenerate → update `EMAILJS_PUBLIC_KEY` in `auth.js`.
 
 ---
 
@@ -542,11 +519,11 @@ Go to openrouter.ai → Keys → create new → update `OPENROUTER_API_KEY` in t
 
 | Requirement | Status |
 |---|---|
-| Access controls | Email + password + OTP 2FA enforced |
+| Access controls | Email + password + OTP 2FA enforced on every login |
 | Credential security | Firebase (Google) — HIPAA BAA available from Google |
-| Session management | sessionStorage — cleared on tab close |
+| Session management | sessionStorage — clears on tab close |
 | Transmission security | HTTPS enforced by GitHub Pages and AWS API Gateway |
 | S3 encryption | Server-side encryption (SSE-S3) enabled by default |
-| Audit logging | Firebase logs all sign-in events; AWS CloudTrail logs S3 + Lambda activity |
+| Audit logging | Firebase logs all sign-in events; AWS CloudTrail logs S3 and Lambda activity |
 
-> For a production HIPAA deployment, sign Google's BAA at cloud.google.com and AWS's BAA via AWS Artifact in the console. EmailJS may need to be replaced with a HIPAA-compliant email service.
+For a production HIPAA deployment: sign Google's BAA at cloud.google.com and AWS's BAA via AWS Artifact. EmailJS may need to be replaced with a HIPAA-compliant transactional email service.
