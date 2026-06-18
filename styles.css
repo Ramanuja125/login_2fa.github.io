@@ -43,22 +43,22 @@ body {
   background: var(--card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 40px 36px;
+  padding: 48px 44px;
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
 }
 
 /* ---- Logo / Header ---- */
 .card-header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .card-header .logo {
-  width: 48px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
   background: var(--primary);
-  border-radius: 12px;
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -66,34 +66,34 @@ body {
 }
 
 .card-header .logo svg {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   fill: #fff;
 }
 
 .card-header h1 {
-  font-size: 1.55rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 4px;
 }
 
 .card-header p {
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: var(--text-muted);
 }
 
 /* ---- Form elements ---- */
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 input[type="text"],
@@ -101,9 +101,9 @@ input[type="email"],
 input[type="password"],
 input[type="tel"] {
   width: 100%;
-  padding: 11px 14px;
+  padding: 13px 16px;
   border: 1.5px solid var(--border);
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 1rem;
   color: var(--text);
   background: #fff;
@@ -121,7 +121,7 @@ input.error {
 }
 
 .field-error {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: var(--danger);
   margin-top: 5px;
   display: none;
@@ -141,7 +141,7 @@ input.error {
 }
 
 .pwd-rules li {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   display: flex;
   align-items: center;
@@ -167,9 +167,9 @@ input.error {
 .btn {
   display: block;
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -203,10 +203,10 @@ input.error {
 
 /* ---- Alert banners ---- */
 .alert {
-  padding: 10px 14px;
-  border-radius: 7px;
-  font-size: 0.875rem;
-  margin-bottom: 18px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
   display: none;
 }
 
@@ -229,8 +229,8 @@ input.error {
 /* ---- Links ---- */
 .footer-link {
   text-align: center;
-  margin-top: 20px;
-  font-size: 0.875rem;
+  margin-top: 24px;
+  font-size: 0.95rem;
   color: var(--text-muted);
 }
 
@@ -253,10 +253,10 @@ input.error {
 }
 
 .otp-group input {
-  width: 48px;
-  height: 56px;
+  width: 56px;
+  height: 66px;
   text-align: center;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 700;
   border: 1.5px solid var(--border);
   border-radius: 7px;
@@ -270,8 +270,8 @@ input.error {
 
 /* ---- Success page ---- */
 .success-icon {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   background: #f0fdf4;
   border-radius: 50%;
   display: flex;
@@ -281,8 +281,8 @@ input.error {
 }
 
 .success-icon svg {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   stroke: var(--success);
   fill: none;
   stroke-width: 2.5;
@@ -293,10 +293,10 @@ input.error {
 .user-badge {
   background: var(--primary-light);
   border-radius: 8px;
-  padding: 12px 16px;
+  padding: 14px 18px;
   text-align: center;
-  margin: 18px 0;
-  font-size: 0.9rem;
+  margin: 20px 0;
+  font-size: 1rem;
   color: var(--primary-dark);
   font-weight: 500;
 }
@@ -304,9 +304,9 @@ input.error {
 /* ---- HIPAA notice ---- */
 .hipaa-notice {
   text-align: center;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
-  margin-top: 24px;
+  margin-top: 28px;
   line-height: 1.5;
 }
 
