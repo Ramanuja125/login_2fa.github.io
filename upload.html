@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Upload Files — Secure Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="styles.css" />
   <style>
     .upload-area {
@@ -167,6 +170,137 @@
     }
     .all-result-card .card-body.loading { color: #6b7280; font-style: italic; }
     .all-result-card .card-body.error   { color: #ef4444; }
+
+    /* ── Upload page — bigger, more spacious ───────────────────── */
+    .card { max-width: 700px; padding: 52px 48px; }
+    .card-header h1 { font-size: 2rem; }
+    .card-header p  { font-size: 1.05rem; }
+    .success-icon   { width: 72px; height: 72px; }
+    .success-icon svg { width: 38px; height: 38px; }
+
+    .mode-select { gap: 16px; margin-bottom: 24px; }
+    .mode-card { padding: 28px 20px; border-radius: 16px; }
+    .mode-card svg { width: 40px; height: 40px; margin-bottom: 10px; }
+    .mode-card .mode-title { font-size: 1rem; }
+    .mode-card .mode-desc  { font-size: 0.85rem; }
+
+    .upload-area { padding: 44px 28px; }
+    .upload-area svg { width: 52px; height: 52px; margin-bottom: 14px; }
+    .upload-area p { font-size: 1rem; }
+    .upload-area .file-count { font-size: 0.95rem; }
+
+    .file-list li { font-size: 0.95rem; padding: 9px 12px; }
+    .file-list li .fstatus { font-size: 0.85rem; }
+
+    .stored-loading { font-size: 0.95rem; }
+    .stored-list { max-height: 340px; }
+    .stored-list li { padding: 13px 16px; }
+    .stored-list li .sl-name { font-size: 0.95rem; }
+    .stored-list li .sl-meta { font-size: 0.8rem; }
+    .stored-list li input[type="checkbox"] { width: 18px; height: 18px; }
+    .stored-actions a { font-size: 0.875rem; }
+    .stored-empty { font-size: 0.95rem; }
+
+    .chat-section { margin-top: 36px; padding-top: 28px; }
+    .chat-section h2 { font-size: 1.2rem; margin-bottom: 18px; }
+
+    .chat-tabs { margin-bottom: 22px; }
+    .chat-tab-btn { font-size: 0.95rem; padding: 11px 18px; }
+
+    .chat-file-label { font-size: 0.9rem; margin-bottom: 8px; }
+    .chat-file-select { font-size: 0.95rem; padding: 10px 12px; margin-bottom: 20px; }
+
+    .chat-messages { min-height: 220px; max-height: 460px; padding: 18px; gap: 12px; margin-bottom: 18px; }
+    .chat-bubble { font-size: 0.95rem; padding: 12px 18px; line-height: 1.6; }
+
+    .chat-textarea { font-size: 1rem; min-height: 88px; padding: 14px 50px 14px 16px; }
+    .mic-btn { width: 34px; height: 34px; right: 12px; bottom: 12px; }
+    .mic-btn svg { width: 18px; height: 18px; }
+    .chat-send-btn { font-size: 1rem; padding: 13px; margin-top: 4px; }
+    .chat-hint { font-size: 0.82rem; margin-top: 10px; }
+
+    .all-files-info { font-size: 0.92rem; padding: 13px 16px; margin-bottom: 18px; }
+    .all-btn-row { gap: 10px; margin-bottom: 10px; }
+    .all-btn-row .btn { font-size: 0.97rem; padding: 12px; }
+
+    .combined-answer .combined-header { font-size: 0.88rem; padding: 10px 18px; }
+    .combined-answer .combined-body   { font-size: 0.95rem; padding: 20px; line-height: 1.7; }
+    .all-result-card .card-file-name  { font-size: 0.88rem; padding: 10px 18px; }
+    .all-result-card .card-body       { font-size: 0.93rem; padding: 18px; line-height: 1.65; }
+
+    .btn-row .btn { padding: 13px; font-size: 1rem; }
+    .upload-status { font-size: 0.9rem; }
+
+    /* ═══ Bigger & Inter — upload page overrides ═══════════════════ */
+    :root { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    /* Card — wider, more breathing room */
+    .card { max-width: 700px; padding: 52px 48px; }
+
+    /* Header */
+    .card-header h1 { font-size: 2rem; }
+    .card-header p  { font-size: 1.05rem; }
+    .success-icon   { width: 72px; height: 72px; margin-bottom: 20px; }
+    .success-icon svg { width: 38px; height: 38px; }
+
+    /* Mode cards */
+    .mode-select { gap: 16px; margin-bottom: 26px; }
+    .mode-card   { padding: 28px 20px; border-radius: 16px; }
+    .mode-card svg { width: 40px; height: 40px; margin-bottom: 12px; }
+    .mode-card .mode-title { font-size: 1.02rem; }
+    .mode-card .mode-desc  { font-size: 0.875rem; }
+
+    /* Upload drop zone */
+    .upload-area { padding: 44px 28px; }
+    .upload-area svg { width: 52px; height: 52px; margin-bottom: 14px; }
+    .upload-area p   { font-size: 1rem; }
+    .upload-area .file-count { font-size: 0.95rem; }
+
+    /* File list rows */
+    .file-list li { font-size: 0.95rem; padding: 9px 12px; }
+    .file-list li .fstatus { font-size: 0.85rem; }
+    .upload-status { font-size: 0.9rem; }
+
+    /* Buttons */
+    .btn { padding: 13px; font-size: 1rem; }
+
+    /* Stored files panel */
+    .stored-loading { font-size: 0.95rem; }
+    .stored-list { max-height: 340px; }
+    .stored-list li { padding: 13px 16px; }
+    .stored-list li .sl-name { font-size: 0.97rem; }
+    .stored-list li .sl-meta { font-size: 0.82rem; }
+    .stored-list li input[type="checkbox"] { width: 18px; height: 18px; }
+    .stored-actions a { font-size: 0.9rem; }
+    .stored-empty { font-size: 0.95rem; }
+
+    /* Chat section */
+    .chat-section { margin-top: 36px; padding-top: 28px; }
+    .chat-section h2 { font-size: 1.2rem; margin-bottom: 20px; }
+    .chat-tabs { margin-bottom: 22px; }
+    .chat-tab-btn { font-size: 0.97rem; padding: 12px 18px; }
+
+    .chat-file-label  { font-size: 0.92rem; margin-bottom: 8px; }
+    .chat-file-select { font-size: 0.97rem; padding: 11px 12px; margin-bottom: 20px; }
+
+    .chat-messages { min-height: 220px; max-height: 460px; padding: 18px; gap: 12px; margin-bottom: 18px; }
+    .chat-bubble   { font-size: 0.97rem; padding: 12px 18px; line-height: 1.6; }
+
+    .chat-textarea  { font-size: 1rem; min-height: 90px; padding: 14px 54px 14px 16px; }
+    .mic-btn        { width: 36px; height: 36px; right: 12px; bottom: 12px; }
+    .mic-btn svg    { width: 18px; height: 18px; }
+    .chat-send-btn  { font-size: 1rem; padding: 14px; margin-top: 4px; }
+    .chat-hint      { font-size: 0.84rem; margin-top: 10px; }
+
+    /* Ask All tab */
+    .all-files-info { font-size: 0.95rem; padding: 14px 18px; margin-bottom: 20px; }
+    .all-btn-row    { gap: 12px; margin-bottom: 12px; }
+    .all-btn-row .btn { font-size: 1rem; padding: 13px; }
+
+    .combined-answer .combined-header { font-size: 0.9rem;  padding: 11px 18px; }
+    .combined-answer .combined-body   { font-size: 0.97rem; padding: 20px; line-height: 1.7; }
+    .all-result-card .card-file-name  { font-size: 0.9rem;  padding: 11px 18px; }
+    .all-result-card .card-body       { font-size: 0.95rem; padding: 18px; line-height: 1.65; }
   </style>
 </head>
 <body>
@@ -260,6 +394,8 @@
 
       <!-- Tab 2: Ask All Files -->
       <div class="chat-tab-panel" id="tab-allfiles">
+      <!-- Tab 2: Ask All Files -->
+      <div class="chat-tab-panel" id="tab-allfiles">
         <div class="all-files-info" id="all-files-info">Upload files above to ask questions across all of them at once.</div>
         <div class="textarea-with-mic">
           <textarea class="chat-textarea" id="all-input" placeholder="Ask a question that spans all your uploaded files — trends, comparisons, lookups across records…" rows="4"></textarea>
@@ -313,12 +449,11 @@
     var storedFilesCache = null;
 
     function fetchStoredFiles() {
-      if (storedFilesCache) return; // already loaded
+      if (storedFilesCache) return;
       var loadingEl  = document.getElementById("stored-loading");
       var emptyEl    = document.getElementById("stored-empty");
       var listEl     = document.getElementById("stored-list");
       var actionsRow = document.getElementById("stored-actions-row");
-      var loadBtn    = document.getElementById("stored-load-btn");
 
       loadingEl.style.display = "block";
       emptyEl.style.display   = "none";
@@ -386,7 +521,6 @@
         }
       });
       if (!newKeys.length) {
-        // all already loaded — just show chat
         document.getElementById("chat-section").style.display = "block";
         document.getElementById("chat-section").scrollIntoView({ behavior: "smooth" });
         return;
@@ -395,7 +529,6 @@
       refreshChatDropdown();
       updateAllFilesInfo();
       document.getElementById("chat-section").style.display = "block";
-      // Auto-open first newly loaded file in Per File tab
       switchTab("perfile");
       startChatWith(newKeys[0].key, newKeys[0].name);
     }
@@ -677,7 +810,6 @@
       allResults.appendChild(qEl);
     }
 
-    /* Combined Answer — one request with all files merged ──────────── */
     async function askCombined() {
       var q = allInput.value.trim();
       if (!q || !uploadedKeys.length) { updateAllFilesInfo(); return; }
@@ -685,7 +817,6 @@
       allSetBusy(true);
       allShowQuestion(q);
 
-      // Build the combined answer box immediately (loading state)
       var box = document.createElement("div");
       box.className = "combined-answer";
       var header = document.createElement("div");
@@ -723,7 +854,6 @@
       allInput.focus();
     }
 
-    /* Ask Each File — parallel per-file cards (existing behaviour) ─── */
     async function askPerFile() {
       var q = allInput.value.trim();
       if (!q || !uploadedKeys.length) { updateAllFilesInfo(); return; }
@@ -782,7 +912,6 @@
     (function() {
       var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        // Browser doesn't support it — hide the mic buttons gracefully
         var btns = document.querySelectorAll(".mic-btn");
         btns.forEach(function(b) { b.style.display = "none"; });
         return;
@@ -793,12 +922,11 @@
         var textarea = document.getElementById(targetTextareaId);
         var recog    = new SpeechRecognition();
         recog.lang        = "en-US";
-        recog.continuous  = true;   // keep listening until explicitly stopped
+        recog.continuous  = true;
         recog.interimResults = true;
 
         var isListening   = false;
-        var baseText      = "";     // text already in box before this session
-        var interimSpan   = "";     // live interim text (replaced on each interim result)
+        var baseText      = "";
 
         recog.onstart = function() {
           isListening = true;
@@ -829,7 +957,6 @@
 
         recog.onend = function() {
           if (isListening) {
-            // continuous mode ended unexpectedly — restart
             try { recog.start(); } catch(e) { stopListening(); }
           }
         };
@@ -839,7 +966,6 @@
           btn.classList.remove("listening");
           btn.title = "Click to speak";
           try { recog.stop(); } catch(e) {}
-          // clean up any trailing space
           textarea.value = textarea.value.trim();
         }
 
