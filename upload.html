@@ -301,6 +301,30 @@
     .combined-answer .combined-body   { font-size: 0.97rem; padding: 20px; line-height: 1.7; }
     .all-result-card .card-file-name  { font-size: 0.9rem;  padding: 11px 18px; }
     .all-result-card .card-body       { font-size: 0.95rem; padding: 18px; line-height: 1.65; }
+
+    /* ── SMS tab ────────────────────────────────────────────────────── */
+    .sms-section { margin-bottom: 20px; }
+    .sms-file-row { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+    .sms-file-select { flex: 1; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: #111827; font-size: 0.95rem; box-sizing: border-box; cursor: pointer; }
+    .sms-status { padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; line-height: 1.5; margin-bottom: 16px; display: none; }
+    .sms-status.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; display: block; }
+    .sms-status.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; display: block; }
+    .sms-status.info    { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; display: block; }
+    .sms-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .sms-replies-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .sms-replies-header h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 0; }
+    .sms-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+    .sms-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .sms-table th { background: #f3f4f6; padding: 10px 14px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .sms-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: #111827; }
+    .sms-table tr:last-child td { border-bottom: none; }
+    .sms-table tr:hover td { background: rgba(99,102,241,0.03); }
+    .sms-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
+    .sms-badge.replied  { background: #dcfce7; color: #16a34a; }
+    .sms-badge.waiting  { background: #f3f4f6; color: #6b7280; }
+    .sms-badge.optout   { background: #fef2f2; color: #dc2626; }
+    .sms-empty { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 28px 0; }
+    .sms-pending-note { font-size: 0.8rem; color: #d97706; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; }
   </style>
 </head>
 <body>
@@ -371,8 +395,9 @@
 
       <!-- Tab buttons -->
       <div class="chat-tabs">
-        <button class="chat-tab-btn active" id="tab-btn-perfile" onclick="switchTab('perfile')">Per File Chat</button>
+        <button class="chat-tab-btn active" id="tab-btn-perfile"  onclick="switchTab('perfile')">Per File Chat</button>
         <button class="chat-tab-btn"        id="tab-btn-allfiles" onclick="switchTab('allfiles')">Ask All Files</button>
+        <button class="chat-tab-btn"        id="tab-btn-sms"      onclick="switchTab('sms')">📱 SMS Reminders</button>
       </div>
 
       <!-- Tab 1: Per File -->
@@ -411,6 +436,37 @@
           <strong>Ask Each File</strong> — each file is queried independently in parallel. Best for per-file comparisons.
         </p>
       </div>
+
+      <!-- Tab 3: SMS Reminders -->
+      <div class="chat-tab-panel" id="tab-sms">
+        <div class="sms-pending-note" id="sms-pending-note" style="display:none;">
+          ⚠️ Your toll-free number is still being provisioned by AWS. You can set everything up now — SMS sending will work once the number becomes Active (usually within 24 hours).
+        </div>
+
+        <div class="sms-section">
+          <p class="chat-file-label">Select an Excel patient file to send bill reminders:</p>
+          <div class="sms-file-row">
+            <select class="sms-file-select" id="sms-file-select">
+              <option value="">— select a patient Excel file —</option>
+            </select>
+            <button class="btn btn-primary" id="sms-send-btn" style="width:auto;padding:10px 22px;white-space:nowrap;" onclick="sendSmsReminders()">Send Reminders</button>
+          </div>
+          <div class="sms-status" id="sms-status"></div>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:-8px;">
+            Each patient will receive: <em>"Hi [Name], you have an outstanding bill of $[Amount]. Call 480-406-5664 at your convenience."</em>
+          </p>
+        </div>
+
+        <hr class="sms-divider"/>
+
+        <div class="sms-replies-header">
+          <h3>Patient Replies</h3>
+          <button class="btn btn-outline" id="sms-refresh-btn" style="width:auto;padding:8px 18px;font-size:0.875rem;" onclick="loadSmsConversations()">↻ Refresh</button>
+        </div>
+        <div id="sms-conversations-wrap">
+          <div class="sms-empty">Click Refresh to load patient replies.</div>
+        </div>
+      </div>
   </div>
 
   <p class="hipaa-notice">
@@ -425,6 +481,7 @@
   <script>
     var API_ENDPOINT  = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url";
     var CHAT_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/chat";
+    // SMS actions reuse the same /chat endpoint — no new API Gateway routes needed
 
     var user = getSessionUser();
     if (!user) {
@@ -669,9 +726,12 @@
     function switchTab(tab) {
       document.getElementById("tab-perfile").classList.toggle("active", tab === "perfile");
       document.getElementById("tab-allfiles").classList.toggle("active", tab === "allfiles");
+      document.getElementById("tab-sms").classList.toggle("active", tab === "sms");
       document.getElementById("tab-btn-perfile").classList.toggle("active", tab === "perfile");
       document.getElementById("tab-btn-allfiles").classList.toggle("active", tab === "allfiles");
+      document.getElementById("tab-btn-sms").classList.toggle("active", tab === "sms");
       if (tab === "allfiles") updateAllFilesInfo();
+      if (tab === "sms") refreshSmsFileSelect();
     }
 
     function updateAllFilesInfo() {
@@ -979,6 +1039,112 @@
       makeMic("mic-perfile", "chat-input");
       makeMic("mic-all",     "all-input");
     })();
+
+    /* ── SMS: populate file dropdown with xlsx files ─────────────────── */
+    function refreshSmsFileSelect() {
+      var sel = document.getElementById("sms-file-select");
+      var prev = sel.value;
+      sel.innerHTML = "<option value=''>— select a patient Excel file —</option>";
+      uploadedKeys.forEach(function(f) {
+        if (/\.(xlsx|xls|csv)$/i.test(f.name)) {
+          var opt = document.createElement("option");
+          opt.value = f.key;
+          opt.textContent = f.name;
+          sel.appendChild(opt);
+        }
+      });
+      // Restore selection if still available
+      if (prev && sel.querySelector("option[value='" + prev + "']")) sel.value = prev;
+      // Auto-select if only one xlsx
+      var opts = sel.querySelectorAll("option[value]");
+      if (opts.length === 1) sel.value = opts[0].value;
+    }
+
+    /* ── SMS: send bill reminders ─────────────────────────────────────── */
+    async function sendSmsReminders() {
+      var sel = document.getElementById("sms-file-select");
+      var excelKey = sel.value;
+      if (!excelKey) {
+        showSmsStatus("Please select a patient Excel file first.", "error");
+        return;
+      }
+      var btn = document.getElementById("sms-send-btn");
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+      showSmsStatus("Triggering SMS reminders — this may take a minute for large lists…", "info");
+
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "trigger_sms", excel_key: excelKey }),
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.message || "HTTP " + res.status);
+        showSmsStatus("✓ " + (data.message || "SMS reminders are being sent! Patient replies will appear below once they respond."), "success");
+      } catch (err) {
+        showSmsStatus("Error: " + err.message, "error");
+        console.error("SMS send error:", err);
+      }
+
+      btn.disabled = false;
+      btn.textContent = "Send Reminders";
+    }
+
+    function showSmsStatus(msg, type) {
+      var el = document.getElementById("sms-status");
+      el.textContent = msg;
+      el.className = "sms-status " + type;
+    }
+
+    /* ── SMS: load patient replies from DynamoDB ─────────────────────── */
+    async function loadSmsConversations() {
+      var wrap = document.getElementById("sms-conversations-wrap");
+      var btn  = document.getElementById("sms-refresh-btn");
+      btn.disabled = true;
+      wrap.innerHTML = "<div class='sms-empty'>Loading replies…</div>";
+
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get_sms_conversations" }),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var data = await res.json();
+        var convs = data.conversations || [];
+
+        if (!convs.length) {
+          wrap.innerHTML = "<div class='sms-empty'>No messages sent yet. Send bill reminders above to get started.</div>";
+        } else {
+          var html = "<div class='sms-table-wrap'><table class='sms-table'><thead><tr>" +
+            "<th>Patient</th><th>Phone</th><th>Amount Due</th><th>Status</th><th>Last Patient Reply</th></tr></thead><tbody>";
+          convs.forEach(function(c) {
+            var badge = c.opt_out
+              ? "<span class='sms-badge optout'>Opted Out</span>"
+              : c.reply_count > 0
+                ? "<span class='sms-badge replied'>Replied (" + c.reply_count + ")</span>"
+                : "<span class='sms-badge waiting'>Sent</span>";
+            var reply = c.last_reply
+              ? ("<span title='" + c.last_reply.replace(/'/g,"&#39;") + "'>" + c.last_reply.substring(0, 80) + (c.last_reply.length > 80 ? "…" : "") + "</span>")
+              : "<span style='color:#9ca3af;font-style:italic;'>—</span>";
+            html += "<tr><td>" + (c.patient_name || "—") + "</td>" +
+              "<td style='white-space:nowrap;'>" + c.phone + "</td>" +
+              "<td style='white-space:nowrap;'>$" + (c.amount_due || "0") + "</td>" +
+              "<td>" + badge + "</td>" +
+              "<td style='max-width:260px;word-break:break-word;'>" + reply + "</td></tr>";
+          });
+          html += "</tbody></table></div>";
+          html += "<p style='font-size:0.78rem;color:var(--text-muted);margin-top:10px;'>" + convs.length + " patient" + (convs.length > 1 ? "s" : "") + " · GPT-5.5 replies automatically to inbound messages</p>";
+          wrap.innerHTML = html;
+        }
+      } catch (err) {
+        wrap.innerHTML = "<div class='sms-empty' style='color:#dc2626;'>Could not load replies. Make sure the sms-conversations Lambda and API route are set up.</div>";
+        console.error("SMS conversations error:", err);
+      }
+
+      btn.disabled = false;
+    }
   </script>
 </body>
 </html>
