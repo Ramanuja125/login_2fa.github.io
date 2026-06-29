@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Two-Factor Verification — Secure Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+      </div>
+      <h1>Check Your Email</h1>
+      <p>We sent a 6-digit code to your inbox</p>
+    </div>
+
+    <div id="alert-error" class="alert alert-error" role="alert"></div>
+
+    <div class="otp-group" aria-label="Enter verification code">
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 1" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 2" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 3" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 4" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 5" />
+      <input type="tel" maxlength="1" pattern="[0-9]" inputmode="numeric" aria-label="Digit 6" />
+    </div>
+
+    <p style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-bottom:18px;">
+      Code expires in <strong>10 minutes</strong>
+    </p>
+
+    <button class="btn btn-primary" id="verify-btn" disabled>Verify Code</button>
+
+    <div class="footer-link" style="margin-top:14px;">
+      <a href="index.html">← Back to Sign In</a>
+    </div>
+  </div>
+
+  <p class="hipaa-notice">
+    <span>🔒 HIPAA Compliant</span><br/>
+    Two-factor authentication is required for HIPAA compliance.
+    <br/>For any information please contact Arvind Kulkarni at 480-406-5664
+  </p>
+
+  <script src="auth.js"></script>
+  <script>
+    initOtpInputs();
+
+    document.getElementById("verify-btn").addEventListener("click", () => {
+      hideAlert("alert-error");
+      const code = getOtpValue();
+      const result = verifyOTP(code);
+
+      if (result.valid) {
+        window.location.href = "dashboard.html";
+      } else {
+        showAlert("alert-error", result.message);
+        if (result.message.includes("expired") || result.message.includes("Session")) {
+          setTimeout(() => window.location.href = "index.html", 2000);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
