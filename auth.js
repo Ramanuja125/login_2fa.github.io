@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 // ─────────────────────────────────────────────
 const EMAILJS_SERVICE_ID  = "service_xkqj0hk";
 const EMAILJS_TEMPLATE_ID = "template_itledcu";
-const EMAILJS_PUBLIC_KEY  = "SZ8eY2te2zZP5bkQe";
+const EMAILJS_PUBLIC_KEY  = "TTVqGUIKfCVoS2Sbz";
 
 // ─────────────────────────────────────────────
 // FIREBASE INIT
@@ -65,8 +65,8 @@ function verifyOTP(entered) {
     return { valid: false, message: "Incorrect code. Please try again." };
   }
 
-  // Valid — promote to full session
-  sessionStorage.setItem("auth_user", JSON.stringify({
+  // Valid — promote to full session (localStorage = shared across tabs)
+  localStorage.setItem("auth_user", JSON.stringify({
     name:  data.name,
     email: data.email,
   }));
@@ -113,8 +113,10 @@ async function loginUser(email, password) {
 // SIGN OUT
 // ─────────────────────────────────────────────
 async function signOut() {
-  sessionStorage.removeItem("auth_user");
+  localStorage.removeItem("auth_user");
+  localStorage.removeItem("open_tabs");
   sessionStorage.removeItem("otp_data");
+  sessionStorage.removeItem("tab_id");
   try { await getAuth().signOut(); } catch (e) { /* ignore */ }
   window.location.href = "index.html";
 }
@@ -123,7 +125,7 @@ async function signOut() {
 // SESSION HELPERS
 // ─────────────────────────────────────────────
 function getSessionUser() {
-  const raw = sessionStorage.getItem("auth_user");
+  const raw = localStorage.getItem("auth_user");
   return raw ? JSON.parse(raw) : null;
 }
 
@@ -221,3 +223,31 @@ function checkOtpComplete(inputs) {
   const btn = document.getElementById("verify-btn");
   if (btn) btn.disabled = !complete;
 }
+
+// ─────────────────────────────────────────────
+// TAB SESSION TRACKER
+// Keeps auth_user in localStorage (shared across tabs).
+// Clears it automatically when the last tab closes.
+// ─────────────────────────────────────────────
+(function initTabSession() {
+  // Give this tab a unique ID
+  const tabId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  sessionStorage.setItem("tab_id", tabId);
+
+  // Register tab
+  const tabs = JSON.parse(localStorage.getItem("open_tabs") || "[]");
+  tabs.push(tabId);
+  localStorage.setItem("open_tabs", JSON.stringify(tabs));
+
+  // Deregister on close — if last tab, wipe the session
+  window.addEventListener("beforeunload", function () {
+    let remaining = JSON.parse(localStorage.getItem("open_tabs") || "[]")
+      .filter(function (id) { return id !== tabId; });
+    if (remaining.length === 0) {
+      localStorage.removeItem("auth_user");
+      localStorage.removeItem("open_tabs");
+    } else {
+      localStorage.setItem("open_tabs", JSON.stringify(remaining));
+    }
+  });
+})();
