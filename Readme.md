@@ -57,8 +57,8 @@ No backend server, no managed database for the web app, no AI framework. Everyth
 | 16 | API key never exposed to browser | Lambda environment variable only |
 | 17 | SMS bill reminders to patients | AWS End User Messaging via sms-send Lambda |
 | 18 | Two-way SMS — AI replies to patient responses | sms-reply Lambda + GPT-5.5 |
-| 19 | SMS Reminders tab in portal UI | upload.html SMS tab → s3-chat trigger_sms action |
-| 20 | View patient replies in portal | upload.html → s3-chat get_sms_conversations → DynamoDB |
+| 19 | SMS Reminders tab in portal UI | dashboard.html SMS tab → s3-chat trigger_sms action |
+| 20 | View patient replies in portal | dashboard.html → s3-chat get_sms_conversations → DynamoDB |
 | 21 | Strict AI guardrails on SMS replies | Whitelist system prompt — redirects unknown questions to phone |
 
 ---
@@ -98,7 +98,7 @@ No backend server, no managed database for the web app, no AI framework. Everyth
                   |  index.html      --> verify.html         |
                   |  register.html                           |
                   |  forgot-password.html                    |
-                  |  upload.html  <-- main page after login  |
+                  |  dashboard.html  <-- main page after login  |
                   |    Tab 1: Per File Chat                  |
                   |    Tab 2: Ask All Files                  |
                   |    Tab 3: SMS Reminders ← NEW            |
@@ -178,7 +178,7 @@ index.html
 verify.html
   User types the 6-digit code
   → Browser checks: does it match? Is it within 10 minutes?
-  → Yes: session saved, user goes to upload.html
+  → Yes: session saved, user goes to dashboard.html
   → No: user must log in again
 ```
 
@@ -309,7 +309,7 @@ The `sms-reply` Lambda uses a **whitelist system prompt** — GPT-5.5 can only a
 
 ### How the UI Connects to SMS
 
-The SMS tab in `upload.html` uses the **existing `/chat` API endpoint** — no new API Gateway routes:
+The SMS tab in `dashboard.html` uses the **existing `/chat` API endpoint** — no new API Gateway routes:
 
 | UI Action | Calls | Lambda handles via |
 |-----------|-------|-------------------|
@@ -414,7 +414,7 @@ aws lambda publish-layer-version \
 
 **`s3-upload-lambda`** (`lambda_function.py`)
 - Runtime: Python 3.12 | Role: `s3-upload-lambda-role` | Timeout: 30s
-- Env vars: `BUCKET_NAME`, `BUCKET_REGION`, `ALLOWED_ORIGIN`
+- Env vars: `BUCKET_NAME`, `BUCKET_REGION`, `ALLOWED_ORIGINS`
 - Files stored at `uploads/<filename>` (not bucket root)
 
 **`s3-chat`** (`chat_lambda_function.py`)
@@ -425,7 +425,7 @@ aws lambda publish-layer-version \
 |----------|-------|
 | `BUCKET_NAME` | `emr-lab-bucket-699092321120-us-east-2-an` |
 | `BUCKET_REGION` | `us-east-2` |
-| `ALLOWED_ORIGIN` | `https://kanikayears.com` |
+| `ALLOWED_ORIGINS` | `https://kanikayears.com` |
 | `OPENROUTER_API_KEY` | `sk-or-...` — never put anywhere else |
 | `DYNAMODB_TABLE` | `sms-conversations` |
 | `SMS_SEND_FUNCTION` | `sms-send` |
@@ -552,7 +552,7 @@ Template variables: `{{to_email}}` and `{{otp_code}}`. Public Key is safe to exp
 ├── index.html                   → Login page (email + password)
 ├── register.html                → New user registration
 ├── verify.html                  → OTP entry (2FA step)
-├── upload.html                  → Main page: upload, load stored, AI chat, SMS tab
+├── dashboard.html               → Main page: upload, load stored, AI chat, SMS tab
 ├── forgot-password.html         → Password reset
 ├── success.html                 → Post-registration confirmation
 ├── styles.css                   → Shared styles (Inter font, sizing, all pages)
