@@ -14,17 +14,17 @@ html {
 }
 
 :root {
-  --primary:       #0d9488;
-  --primary-dark:  #0f766e;
-  --primary-light: #f0fdfa;
+  --primary:       #184080;
+  --primary-dark:  #0f2d5e;
+  --primary-light: #e8eef8;
   --danger:        #dc2626;
   --success:       #16a34a;
   --warning:       #d97706;
   --text:          #111827;
   --text-muted:    #6b7280;
   --border:        #d1d5db;
-  --border-focus:  #0d9488;
-  --bg:            #f0fdfa;
+  --border-focus:  #184080;
+  --bg:            #f0f4fb;
   --card:          #ffffff;
   --radius:        10px;
   --shadow:        0 4px 24px rgba(0, 0, 0, 0.08);
@@ -59,14 +59,17 @@ body {
 }
 
 .card-header .logo {
-  width: 76px;
-  height: 76px;
-  background: var(--primary);
-  border-radius: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
+}
+
+.card-header .logo img {
+  width: 84px;
+  height: 84px;
+  border-radius: 16px;
+  object-fit: cover;
 }
 
 .card-header .logo svg {
@@ -117,7 +120,7 @@ input[type="tel"] {
 
 input:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+  box-shadow: 0 0 0 3px rgba(24, 64, 128, 0.12);
 }
 
 input.error {
@@ -269,7 +272,7 @@ input.error {
 
 .otp-group input:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+  box-shadow: 0 0 0 3px rgba(24, 64, 128, 0.12);
 }
 
 /* ---- Success page ---- */
