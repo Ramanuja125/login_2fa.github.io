@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Kanika Years</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Reset body for dashboard layout ───────────────────────────── */
+    body {
+      display: block !important;
+      padding: 0 !important;
+      justify-content: unset !important;
+      align-items: unset !important;
+      background: #f1f5f9;
+      min-height: 100vh;
+    }
+
+    /* ── Top Navbar ─────────────────────────────────────────────────── */
+    .dashboard-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      width: 100%;
+      background: #1e3a8a;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      height: 54px;
+      box-sizing: border-box;
+      gap: 0;
+    }
+
+    /* Brand */
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      flex-shrink: 0;
+      margin-right: 32px;
+    }
+    .nav-brand .brand-logo {
+      width: 32px;
+      height: 32px;
+      background: #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #1e3a8a;
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+    }
+    .nav-brand .brand-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    /* Nav tabs */
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+    .nav-tab {
+      position: relative;
+      padding: 7px 18px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.65);
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-tab:hover:not(.active):not(.coming-soon-tab) {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.85);
+    }
+    .nav-tab.active {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      font-weight: 600;
+    }
+    .nav-tab.coming-soon-tab {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+    .nav-tab.coming-soon-tab:hover {
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.7);
+    }
+    /* Coming Soon tooltip */
+    .nav-tab .coming-tooltip {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .nav-tab .coming-tooltip::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-bottom-color: #1e293b;
+      border-top: none;
+    }
+    .nav-tab.coming-soon-tab:hover .coming-tooltip {
+      display: block;
+    }
+
+    /* Right side */
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .nav-username {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.8);
+      font-weight: 500;
+    }
+    .nav-signout {
+      padding: 6px 16px;
+      border-radius: 6px;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      background: transparent;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .nav-signout:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.6);
+    }
+
+    /* ── Dashboard page panels ──────────────────────────────────────── */
+    .dash-page { display: none; }
+    .dash-page.active { display: block; }
+
+    /* ── Prompt page layout ─────────────────────────────────────────── */
+    .prompt-wrap {
+      max-width: 860px;
+      margin: 36px auto 48px;
+      padding: 0 20px;
+    }
+
+    /* Card override for dashboard */
+    .prompt-wrap .card {
+      max-width: 100%;
+      padding: 40px 48px;
+      border-radius: 14px;
+    }
+
+    /* ── Coming soon pages ──────────────────────────────────────────── */
+    .coming-soon-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 54px);
+      gap: 16px;
+      color: #64748b;
+    }
+    .coming-soon-page .cs-icon {
+      width: 72px;
+      height: 72px;
+      background: #e2e8f0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .coming-soon-page .cs-icon svg {
+      width: 36px;
+      height: 36px;
+      stroke: #94a3b8;
+      fill: none;
+      stroke-width: 1.5;
+    }
+    .coming-soon-page h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #334155;
+      margin: 0;
+    }
+    .coming-soon-page p {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      margin: 0;
+    }
+    .coming-badge {
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── Upload area ─────────────────────────────────────────────────── */
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 16px;
+      background: transparent;
+    }
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.04);
+    }
+    .upload-area svg { width: 40px; height: 40px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; margin-bottom: 10px; }
+    .upload-area p { margin: 0; font-size: 0.875rem; color: var(--text-muted); }
+    .upload-area .file-count { margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: var(--primary); }
+    #file-input { display: none; }
+
+    .file-list { list-style: none; padding: 0; margin: 0 0 16px; display: none; }
+    .file-list li { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; background: var(--surface, rgba(0,0,0,0.04)); gap: 8px; }
+    .file-list li .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+    .file-list li .fsize { color: var(--text-muted); white-space: nowrap; }
+    .file-list li .fstatus { font-size: 0.75rem; white-space: nowrap; min-width: 60px; text-align: right; }
+    .file-list li .fstatus.pending   { color: var(--text-muted); }
+    .file-list li .fstatus.uploading { color: var(--primary); }
+    .file-list li .fstatus.done      { color: #22c55e; cursor: pointer; text-decoration: underline; }
+    .file-list li .fstatus.error     { color: #ef4444; }
+
+    .progress-bar-wrap { width: 100%; background: var(--border); border-radius: 99px; height: 6px; margin: 12px 0; display: none; }
+    .progress-bar-fill { height: 6px; border-radius: 99px; background: var(--primary); width: 0%; transition: width 0.3s; }
+    .upload-status { text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; min-height: 18px; }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row .btn { flex: 1; }
+
+    /* ── Mode selection ─────────────────────────────────────────────── */
+    .mode-select { display: flex; gap: 12px; margin-bottom: 20px; }
+    .mode-card {
+      flex: 1; border: 2px solid var(--border); border-radius: 12px;
+      padding: 20px 14px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: transparent;
+    }
+    .mode-card:hover { border-color: var(--primary); background: rgba(99,102,241,0.04); }
+    .mode-card.active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
+    .mode-card svg { width: 32px; height: 32px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; margin-bottom: 8px; }
+    .mode-card.active svg { stroke: var(--primary); }
+    .mode-card .mode-title { font-size: 0.88rem; font-weight: 600; color: var(--text); margin: 0 0 4px; }
+    .mode-card .mode-desc  { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
+
+    /* ── Load stored files panel ────────────────────────────────────── */
+    .stored-panel { display: none; }
+    .stored-loading { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 24px 0; }
+    .stored-list { list-style: none; padding: 0; margin: 0 0 14px; max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+    .stored-list li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+    .stored-list li:last-child { border-bottom: none; }
+    .stored-list li:hover { background: rgba(99,102,241,0.04); }
+    .stored-list li input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .stored-list li .sl-name { flex: 1; font-size: 0.83rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .stored-list li .sl-meta { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+    .stored-actions { display: flex; gap: 8px; margin-bottom: 4px; }
+    .stored-actions a { font-size: 0.75rem; color: var(--primary); cursor: pointer; text-decoration: underline; }
+    .stored-empty { text-align: center; color: var(--text-muted); font-size: 0.84rem; padding: 28px 0; }
+
+    /* ── Chat section ───────────────────────────────────────────────── */
+    .chat-section { display: none; margin-top: 28px; border-top: 1px solid var(--border); padding-top: 20px; }
+    .chat-section h2 { font-size: 1rem; font-weight: 600; margin: 0 0 14px; color: var(--text); }
+    .chat-tabs { display: flex; gap: 0; margin-bottom: 18px; border-bottom: 2px solid var(--border); }
+    .chat-tab-btn { flex: 1; padding: 9px 12px; font-size: 0.85rem; font-weight: 500; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; color: var(--text-muted); transition: color 0.15s, border-color 0.15s; }
+    .chat-tab-btn.active { color: var(--primary, #6366f1); border-bottom-color: var(--primary, #6366f1); }
+    .chat-tab-panel { display: none; }
+    .chat-tab-panel.active { display: block; }
+
+    /* ── Per-file chat ───────────────────────────────────────────────── */
+    .chat-file-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+    .chat-file-select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: #111827; font-size: 0.85rem; margin-bottom: 16px; box-sizing: border-box; cursor: pointer; }
+    .chat-messages { min-height: 160px; max-height: 360px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; background: #fafafa; }
+    .chat-bubble { max-width: 90%; padding: 10px 14px; border-radius: 14px; font-size: 0.85rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .chat-bubble.user      { align-self: flex-end; background: var(--primary, #6366f1); color: #fff; border-bottom-right-radius: 3px; }
+    .chat-bubble.assistant { align-self: flex-start; background: #e5e7eb; color: #111827; border-bottom-left-radius: 3px; }
+    .chat-bubble.thinking  { align-self: flex-start; background: #e5e7eb; color: #6b7280; font-style: italic; }
+
+    /* ── Mic button ─────────────────────────────────────────────────── */
+    .textarea-with-mic { position: relative; margin-bottom: 8px; }
+    .textarea-with-mic .chat-textarea { padding-right: 46px; }
+    .mic-btn { position: absolute; right: 10px; bottom: 10px; width: 30px; height: 30px; border-radius: 50%; border: none; background: #e5e7eb; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.1s; padding: 0; }
+    .mic-btn:hover { background: #d1d5db; }
+    .mic-btn svg { width: 16px; height: 16px; fill: #6b7280; transition: fill 0.15s; }
+    .mic-btn.listening { background: #fee2e2; animation: mic-pulse 1.2s infinite; }
+    .mic-btn.listening svg { fill: #ef4444; }
+    .mic-btn:disabled { opacity: 0.35; cursor: not-allowed; animation: none; }
+    @keyframes mic-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+    /* ── Shared textarea + send ─────────────────────────────────────── */
+    .chat-textarea-wrap { margin-bottom: 8px; }
+    .chat-textarea { display: block; width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1.5px solid #d1d5db; border-radius: 10px; font-size: 0.9rem; font-family: inherit; color: #111827; background: #ffffff; resize: none; min-height: 72px; line-height: 1.5; outline: none; transition: border-color 0.15s; }
+    .chat-textarea:focus { border-color: var(--primary, #6366f1); }
+    .chat-textarea:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
+    .chat-textarea::placeholder { color: #9ca3af; }
+    .chat-send-btn { width: 100%; padding: 11px; font-size: 0.9rem; }
+    .chat-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
+
+    /* ── Ask All tab ────────────────────────────────────────────────── */
+    .all-files-info { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; padding: 10px 12px; background: #f0f4ff; border-radius: 8px; border-left: 3px solid var(--primary, #6366f1); }
+    .all-btn-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .all-btn-row .btn { flex: 1; padding: 10px; font-size: 0.875rem; }
+    .all-results { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+    .combined-answer { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+    .combined-answer .combined-header { padding: 8px 12px; font-size: 0.78rem; font-weight: 600; background: #eef2ff; color: #4338ca; border-bottom: 1px solid #c7d2fe; }
+    .combined-answer .combined-body { padding: 14px; font-size: 0.85rem; line-height: 1.6; color: #111827; white-space: pre-wrap; word-break: break-word; }
+    .combined-answer .combined-body.loading { color: #6b7280; font-style: italic; }
+    .combined-answer .combined-body.error   { color: #ef4444; }
+    .all-result-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .all-result-card .card-file-name { padding: 8px 12px; font-size: 0.78rem; font-weight: 600; background: #f3f4f6; color: #374151; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .all-result-card .card-body { padding: 12px; font-size: 0.84rem; line-height: 1.55; color: #111827; white-space: pre-wrap; word-break: break-word; }
+    .all-result-card .card-body.loading { color: #6b7280; font-style: italic; }
+    .all-result-card .card-body.error   { color: #ef4444; }
+
+    /* ── SMS tab ────────────────────────────────────────────────────── */
+    .sms-section { margin-bottom: 20px; }
+    .sms-file-row { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+    .sms-file-select { flex: 1; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: #111827; font-size: 0.95rem; box-sizing: border-box; cursor: pointer; }
+    .sms-status { padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; line-height: 1.5; margin-bottom: 16px; display: none; }
+    .sms-status.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; display: block; }
+    .sms-status.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; display: block; }
+    .sms-status.info    { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; display: block; }
+    .sms-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .sms-replies-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .sms-replies-header h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 0; }
+    .sms-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+    .sms-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .sms-table th { background: #f3f4f6; padding: 10px 14px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .sms-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: #111827; }
+    .sms-table tr:last-child td { border-bottom: none; }
+    .sms-table tr:hover td { background: rgba(99,102,241,0.03); }
+    .sms-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
+    .sms-badge.replied  { background: #dcfce7; color: #16a34a; }
+    .sms-badge.waiting  { background: #f3f4f6; color: #6b7280; }
+    .sms-badge.optout   { background: #fef2f2; color: #dc2626; }
+    .sms-empty { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 28px 0; }
+    .sms-pending-note { font-size: 0.8rem; color: #d97706; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; }
+
+    /* ── HIPAA notice ────────────────────────────────────────────────── */
+    .hipaa-notice {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      padding: 20px 0 32px;
+      line-height: 1.6;
+    }
+    .hipaa-notice span {
+      display: inline-block;
+      background: #e2e8f0;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    /* ── Bigger sizing overrides ─────────────────────────────────────── */
+    .mode-select { gap: 16px; margin-bottom: 26px; }
+    .mode-card   { padding: 28px 20px; border-radius: 16px; }
+    .mode-card svg { width: 40px; height: 40px; margin-bottom: 12px; }
+    .mode-card .mode-title { font-size: 1.02rem; }
+    .mode-card .mode-desc  { font-size: 0.875rem; }
+    .upload-area { padding: 44px 28px; }
+    .upload-area svg { width: 52px; height: 52px; margin-bottom: 14px; }
+    .upload-area p   { font-size: 1rem; }
+    .upload-area .file-count { font-size: 0.95rem; }
+    .file-list li { font-size: 0.95rem; padding: 9px 12px; }
+    .stored-list li { padding: 13px 16px; }
+    .stored-list li .sl-name { font-size: 0.97rem; }
+    .stored-list li .sl-meta { font-size: 0.82rem; }
+    .chat-section { margin-top: 36px; padding-top: 28px; }
+    .chat-section h2 { font-size: 1.2rem; margin-bottom: 20px; }
+    .chat-tab-btn { font-size: 0.97rem; padding: 12px 18px; }
+    .chat-messages { min-height: 220px; max-height: 460px; padding: 18px; gap: 12px; margin-bottom: 18px; }
+    .chat-bubble   { font-size: 0.97rem; padding: 12px 18px; line-height: 1.6; }
+    .chat-textarea  { font-size: 1rem; min-height: 90px; padding: 14px 54px 14px 16px; }
+    .mic-btn        { width: 36px; height: 36px; right: 12px; bottom: 12px; }
+    .chat-send-btn  { font-size: 1rem; padding: 14px; margin-top: 4px; }
+    .btn { padding: 13px; font-size: 1rem; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Top Navigation Bar ──────────────────────────────────────── -->
+  <nav class="dashboard-nav">
+    <a class="nav-brand" href="dashboard.html">
+      <div class="brand-logo">KY</div>
+      <span class="brand-name">Kanika Years</span>
+    </a>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="nav-prompt" onclick="showDashPage('prompt')">Prompt</button>
+      <button class="nav-tab coming-soon-tab" onclick="void(0)">
+        Performance
+        <span class="coming-tooltip">Coming Soon</span>
+      </button>
+      <button class="nav-tab coming-soon-tab" onclick="void(0)">
+        Quality
+        <span class="coming-tooltip">Coming Soon</span>
+      </button>
+      <button class="nav-tab coming-soon-tab" onclick="void(0)">
+        Productivity
+        <span class="coming-tooltip">Coming Soon</span>
+      </button>
+      <button class="nav-tab coming-soon-tab" onclick="void(0)">
+        Financials
+        <span class="coming-tooltip">Coming Soon</span>
+      </button>
+    </div>
+
+    <div class="nav-right">
+      <span class="nav-username" id="nav-username"></span>
+      <button class="nav-signout" onclick="signOut()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- ── Prompt Page ─────────────────────────────────────────────── -->
+  <div class="dash-page active" id="page-prompt">
+    <div class="prompt-wrap">
+      <div class="card">
+        <div id="alert-error"   class="alert alert-error"   role="alert"></div>
+        <div id="alert-success" class="alert alert-success" role="alert"></div>
+
+        <!-- Mode selection -->
+        <div class="mode-select">
+          <div class="mode-card active" id="mode-upload" onclick="selectMode('upload')">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p class="mode-title">Upload Files</p>
+            <p class="mode-desc">Upload new files from your computer</p>
+          </div>
+          <div class="mode-card" id="mode-stored" onclick="selectMode('stored')">
+            <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            <p class="mode-title">Load Stored Files</p>
+            <p class="mode-desc">Browse and load files already in storage</p>
+          </div>
+        </div>
+
+        <!-- Upload panel -->
+        <div id="upload-panel">
+          <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>Click to choose files, or drag &amp; drop here</p>
+            <p style="font-size:0.75rem; margin-top:4px;">Supports Excel, PDF, Word, CSV, TXT — multiple files at once</p>
+            <div class="file-count" id="file-count"></div>
+          </div>
+          <input type="file" id="file-input" multiple />
+          <ul class="file-list" id="file-list"></ul>
+          <div class="progress-bar-wrap" id="progress-wrap">
+            <div class="progress-bar-fill" id="progress-bar"></div>
+          </div>
+          <div class="upload-status" id="upload-status"></div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="upload-btn" disabled>Upload</button>
+          </div>
+        </div>
+
+        <!-- Load stored files panel -->
+        <div class="stored-panel" id="stored-panel">
+          <div id="stored-loading" class="stored-loading" style="display:none;">Loading files from storage…</div>
+          <div id="stored-empty"   class="stored-empty"   style="display:none;">No files found in storage.</div>
+          <div id="stored-actions-row" class="stored-actions" style="display:none;">
+            <a onclick="storedSelectAll(true)">Select all</a>
+            <a onclick="storedSelectAll(false)">Deselect all</a>
+          </div>
+          <ul class="stored-list" id="stored-list" style="display:none;"></ul>
+          <div class="btn-row" style="margin-top:12px;">
+            <button class="btn btn-primary" id="stored-load-btn" disabled onclick="loadSelectedStored()">Load Selected Files</button>
+          </div>
+        </div>
+
+        <!-- Chat section -->
+        <div class="chat-section" id="chat-section">
+          <h2>Ask questions about your files</h2>
+
+          <div class="chat-tabs">
+            <button class="chat-tab-btn active" id="tab-btn-perfile"  onclick="switchTab('perfile')">Per File Chat</button>
+            <button class="chat-tab-btn"        id="tab-btn-allfiles" onclick="switchTab('allfiles')">Ask All Files</button>
+            <button class="chat-tab-btn"        id="tab-btn-sms"      onclick="switchTab('sms')">📱 SMS Reminders</button>
+          </div>
+
+          <!-- Tab 1: Per File -->
+          <div class="chat-tab-panel active" id="tab-perfile">
+            <p class="chat-file-label">Select a file to chat with:</p>
+            <select class="chat-file-select" id="chat-file-select">
+              <option value="">— select a file —</option>
+            </select>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="textarea-with-mic">
+              <textarea class="chat-textarea" id="chat-input" placeholder="Type your question here… (Enter to send, Shift+Enter for new line)" disabled rows="3"></textarea>
+              <button class="mic-btn" id="mic-perfile" title="Click to speak" type="button">
+                <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 17.93V21h2v-2.07A8.001 8.001 0 0 0 20 11h-2a6 6 0 0 1-12 0H4a8.001 8.001 0 0 0 7 7.93z"/></svg>
+              </button>
+            </div>
+            <button class="btn btn-primary chat-send-btn" id="chat-send" disabled>Send</button>
+            <p class="chat-hint">Powered by GPT-5.5. Your API key stays server-side.</p>
+          </div>
+
+          <!-- Tab 2: Ask All Files -->
+          <div class="chat-tab-panel" id="tab-allfiles">
+            <div class="all-files-info" id="all-files-info">Upload files above to ask questions across all of them at once.</div>
+            <div class="textarea-with-mic">
+              <textarea class="chat-textarea" id="all-input" placeholder="Ask a question that spans all your uploaded files — trends, comparisons, lookups across records…" rows="4"></textarea>
+              <button class="mic-btn" id="mic-all" title="Click to speak" type="button">
+                <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 17.93V21h2v-2.07A8.001 8.001 0 0 0 20 11h-2a6 6 0 0 1-12 0H4a8.001 8.001 0 0 0 7 7.93z"/></svg>
+              </button>
+            </div>
+            <div class="all-btn-row">
+              <button class="btn btn-primary" id="all-send-combined">Combined Answer</button>
+              <button class="btn btn-outline" id="all-send-perfile">Ask Each File</button>
+            </div>
+            <div id="all-results"></div>
+            <p class="chat-hint">
+              <strong>Combined Answer</strong> — all files merged, AI reasons across all at once.<br>
+              <strong>Ask Each File</strong> — each file queried independently in parallel.
+            </p>
+          </div>
+
+          <!-- Tab 3: SMS Reminders -->
+          <div class="chat-tab-panel" id="tab-sms">
+            <div class="sms-pending-note" id="sms-pending-note" style="display:none;">
+              ⚠️ Your toll-free number is still being provisioned by AWS. You can set everything up now — SMS sending will work once the number becomes Active.
+            </div>
+            <div class="sms-section">
+              <p class="chat-file-label">Select an Excel patient file to send bill reminders:</p>
+              <div class="sms-file-row">
+                <select class="sms-file-select" id="sms-file-select">
+                  <option value="">— select a patient Excel file —</option>
+                </select>
+                <button class="btn btn-primary" id="sms-send-btn" style="width:auto;padding:10px 22px;white-space:nowrap;" onclick="sendSmsReminders()">Send Reminders</button>
+              </div>
+              <div class="sms-status" id="sms-status"></div>
+              <p style="font-size:0.8rem;color:var(--text-muted);margin-top:-8px;">
+                Each patient receives: <em>"Hi [Name], you have an outstanding bill of $[Amount]. Call 480-406-5664 at your convenience."</em>
+              </p>
+            </div>
+            <hr class="sms-divider"/>
+            <div class="sms-replies-header">
+              <h3>Patient Replies</h3>
+              <button class="btn btn-outline" id="sms-refresh-btn" style="width:auto;padding:8px 18px;font-size:0.875rem;" onclick="loadSmsConversations()">↻ Refresh</button>
+            </div>
+            <div id="sms-conversations-wrap">
+              <div class="sms-empty">Click Refresh to load patient replies.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="hipaa-notice">
+        <span>🔒 HIPAA Compliant</span><br/>
+        Files are uploaded securely over HTTPS. Always sign out when done.<br/>
+        For any information please contact Arvind Kulkarni at 480-406-5664
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Coming Soon Pages ───────────────────────────────────────── -->
+  <div class="dash-page" id="page-performance">
+    <div class="coming-soon-page">
+      <div class="cs-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <span class="coming-badge">Coming Soon</span>
+      <h2>Performance</h2>
+      <p>Track and analyse performance metrics across your practice.</p>
+    </div>
+  </div>
+
+  <div class="dash-page" id="page-quality">
+    <div class="coming-soon-page">
+      <div class="cs-icon"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>
+      <span class="coming-badge">Coming Soon</span>
+      <h2>Quality</h2>
+      <p>Monitor quality indicators and compliance across your records.</p>
+    </div>
+  </div>
+
+  <div class="dash-page" id="page-productivity">
+    <div class="coming-soon-page">
+      <div class="cs-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+      <span class="coming-badge">Coming Soon</span>
+      <h2>Productivity</h2>
+      <p>Insights into workflow efficiency and team productivity.</p>
+    </div>
+  </div>
+
+  <div class="dash-page" id="page-financials">
+    <div class="coming-soon-page">
+      <div class="cs-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+      <span class="coming-badge">Coming Soon</span>
+      <h2>Financials</h2>
+      <p>Revenue, billing summaries, and financial reporting.</p>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    var API_ENDPOINT  = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/get-upload-url";
+    var CHAT_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/chat";
+    // SMS actions reuse the same /chat endpoint — no new API Gateway routes needed
+
+    var user = getSessionUser();
+    if (!user) {
+      window.location.href = "index.html";
+    } else {
+      var displayName = user.name || user.email || "User";
+      document.getElementById("nav-username").textContent = displayName;
+    }
+
+    /* ── Dashboard page switching ──────────────────────────────────── */
+    function showDashPage(page) {
+      document.querySelectorAll(".dash-page").forEach(function(p) { p.classList.remove("active"); });
+      document.querySelectorAll(".nav-tab:not(.coming-soon-tab)").forEach(function(t) { t.classList.remove("active"); });
+      document.getElementById("page-" + page).classList.add("active");
+      document.getElementById("nav-" + page).classList.add("active");
+    }
+
+    /* ── Mode switching ────────────────────────────────────────────── */
+    function selectMode(mode) {
+      var isUpload = mode === "upload";
+      document.getElementById("mode-upload").classList.toggle("active", isUpload);
+      document.getElementById("mode-stored").classList.toggle("active", !isUpload);
+      document.getElementById("upload-panel").style.display  = isUpload ? "block" : "none";
+      document.getElementById("stored-panel").style.display  = isUpload ? "none"  : "block";
+      if (!isUpload) fetchStoredFiles();
+    }
+
+    /* ── Load stored files ─────────────────────────────────────────── */
+    var storedFilesCache = null;
+
+    function fetchStoredFiles() {
+      if (storedFilesCache) return;
+      var loadingEl  = document.getElementById("stored-loading");
+      var emptyEl    = document.getElementById("stored-empty");
+      var listEl     = document.getElementById("stored-list");
+      var actionsRow = document.getElementById("stored-actions-row");
+
+      loadingEl.style.display = "block";
+      emptyEl.style.display   = "none";
+      listEl.style.display    = "none";
+      actionsRow.style.display= "none";
+
+      fetch(CHAT_ENDPOINT, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list_files" }),
+      }).then(function(res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      }).then(function(data) {
+        loadingEl.style.display = "none";
+        var files = data.files || [];
+        storedFilesCache = files;
+        if (!files.length) { emptyEl.style.display = "block"; return; }
+
+        listEl.innerHTML = "";
+        files.forEach(function(f) {
+          var li = document.createElement("li");
+          li.innerHTML =
+            "<input type='checkbox' class='stored-cb' data-key='" + f.key + "' data-name='" + f.name + "'>" +
+            "<span class='sl-name' title='" + f.name + "'>" + f.name + "</span>" +
+            "<span class='sl-meta'>" + formatSize(f.size) + " &nbsp;·&nbsp; " + f.last_modified + "</span>";
+          li.querySelector(".stored-cb").addEventListener("change", updateStoredLoadBtn);
+          li.addEventListener("click", function(e) {
+            if (e.target.tagName !== "INPUT") {
+              var cb = li.querySelector(".stored-cb");
+              cb.checked = !cb.checked;
+              updateStoredLoadBtn();
+            }
+          });
+          listEl.appendChild(li);
+        });
+        listEl.style.display    = "block";
+        actionsRow.style.display= "flex";
+      }).catch(function(err) {
+        loadingEl.style.display = "none";
+        emptyEl.textContent = "Could not load files. Please try again.";
+        emptyEl.style.display = "block";
+        console.error("List files error:", err);
+      });
+    }
+
+    function updateStoredLoadBtn() {
+      var checked = document.querySelectorAll(".stored-cb:checked").length;
+      document.getElementById("stored-load-btn").disabled = checked === 0;
+    }
+
+    function storedSelectAll(select) {
+      document.querySelectorAll(".stored-cb").forEach(function(cb) { cb.checked = select; });
+      updateStoredLoadBtn();
+    }
+
+    function loadSelectedStored() {
+      var checked = document.querySelectorAll(".stored-cb:checked");
+      if (!checked.length) return;
+      var newKeys = [];
+      checked.forEach(function(cb) {
+        var key  = cb.getAttribute("data-key");
+        var name = cb.getAttribute("data-name");
+        if (!uploadedKeys.find(function(f) { return f.key === key; })) {
+          newKeys.push({ key: key, name: name });
+        }
+      });
+      if (!newKeys.length) {
+        document.getElementById("chat-section").style.display = "block";
+        document.getElementById("chat-section").scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+      uploadedKeys = uploadedKeys.concat(newKeys);
+      refreshChatDropdown();
+      updateAllFilesInfo();
+      document.getElementById("chat-section").style.display = "block";
+      switchTab("perfile");
+      startChatWith(newKeys[0].key, newKeys[0].name);
+    }
+
+    var fileInput    = document.getElementById("file-input");
+    var dropZone     = document.getElementById("drop-zone");
+    var fileCountEl  = document.getElementById("file-count");
+    var fileListEl   = document.getElementById("file-list");
+    var uploadBtn    = document.getElementById("upload-btn");
+    var progressWrap = document.getElementById("progress-wrap");
+    var progressBar  = document.getElementById("progress-bar");
+    var uploadStatus = document.getElementById("upload-status");
+
+    var selectedFiles = [];
+    var uploadedKeys  = [];
+
+    function formatSize(bytes) {
+      if (bytes < 1024)    return bytes + " B";
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / 1048576).toFixed(1) + " MB";
+    }
+
+    function setFiles(fileList) {
+      selectedFiles = Array.from(fileList);
+      hideAlert("alert-error");
+      hideAlert("alert-success");
+      uploadStatus.textContent = "";
+      fileCountEl.textContent  = selectedFiles.length === 1 ? "1 file selected" : selectedFiles.length + " files selected";
+      fileListEl.innerHTML = "";
+      selectedFiles.forEach(function(f, i) {
+        var li = document.createElement("li");
+        li.id = "file-row-" + i;
+        li.innerHTML = "<span class=\"fname\" title=\"" + f.name + "\">" + f.name + "</span><span class=\"fsize\">" + formatSize(f.size) + "</span><span class=\"fstatus pending\" id=\"fstatus-" + i + "\">Pending</span>";
+        fileListEl.appendChild(li);
+      });
+      fileListEl.style.display = selectedFiles.length ? "block" : "none";
+      uploadBtn.disabled = selectedFiles.length === 0;
+    }
+
+    fileInput.addEventListener("change", function() { if (fileInput.files.length) setFiles(fileInput.files); });
+    dropZone.addEventListener("dragover",  function(e) { e.preventDefault(); dropZone.classList.add("drag-over"); });
+    dropZone.addEventListener("dragleave", function()  { dropZone.classList.remove("drag-over"); });
+    dropZone.addEventListener("drop", function(e) {
+      e.preventDefault(); dropZone.classList.remove("drag-over");
+      if (e.dataTransfer.files.length) setFiles(e.dataTransfer.files);
+    });
+
+    async function uploadOne(file, index) {
+      var statusEl = document.getElementById("fstatus-" + index);
+      statusEl.textContent = "Uploading...";
+      statusEl.className   = "fstatus uploading";
+
+      var res = await fetch(API_ENDPOINT, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name }),
+      });
+      if (!res.ok) throw new Error("Could not get upload URL for " + file.name);
+      var data = await res.json();
+
+      var formData = new FormData();
+      Object.entries(data.fields).forEach(function(entry) { formData.append(entry[0], entry[1]); });
+      formData.append("file", file);
+
+      var uploadRes = await fetch(data.upload_url, { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error("S3 rejected " + file.name);
+
+      statusEl.textContent = "Chat";
+      statusEl.className   = "fstatus done";
+      statusEl.title       = "Click to chat about this file";
+      statusEl.onclick     = function() { startChatWith(data.key, file.name); };
+      return data.key;
+    }
+
+    uploadBtn.addEventListener("click", async function() {
+      if (!selectedFiles.length) return;
+      uploadBtn.disabled = true;
+      hideAlert("alert-error"); hideAlert("alert-success");
+      progressWrap.style.display = "block";
+      progressBar.style.width    = "0%";
+
+      var done = 0, errors = [], newKeys = [];
+      for (var i = 0; i < selectedFiles.length; i++) {
+        uploadStatus.textContent = "Uploading " + (i + 1) + " of " + selectedFiles.length + "...";
+        try {
+          var key = await uploadOne(selectedFiles[i], i);
+          newKeys.push({ key: key, name: selectedFiles[i].name });
+          done++;
+        } catch (err) {
+          errors.push(selectedFiles[i].name);
+          var statusEl = document.getElementById("fstatus-" + i);
+          statusEl.textContent = "Failed";
+          statusEl.className   = "fstatus error";
+        }
+        progressBar.style.width = Math.round(((i + 1) / selectedFiles.length) * 100) + "%";
+      }
+
+      uploadStatus.textContent = "";
+      if (errors.length === 0) {
+        showAlert("alert-success", done + " file(s) uploaded. Click Chat next to any file to ask questions.");
+        fileInput.value = ""; fileCountEl.textContent = ""; uploadBtn.disabled = true;
+        setTimeout(function() { progressWrap.style.display = "none"; progressBar.style.width = "0%"; }, 1500);
+      } else {
+        showAlert("alert-error", errors.length + " file(s) failed: " + errors.join(", "));
+        uploadBtn.disabled = false;
+      }
+      if (newKeys.length) {
+        uploadedKeys = uploadedKeys.concat(newKeys);
+        refreshChatDropdown();
+        document.getElementById("chat-section").style.display = "block";
+        if (newKeys.length === 1) startChatWith(newKeys[0].key, newKeys[0].name);
+      }
+    });
+
+    var chatSection  = document.getElementById("chat-section");
+    var chatSelect   = document.getElementById("chat-file-select");
+    var chatMessages = document.getElementById("chat-messages");
+    var chatInput    = document.getElementById("chat-input");
+    var chatSend     = document.getElementById("chat-send");
+    var allInput        = document.getElementById("all-input");
+    var allSendCombined = document.getElementById("all-send-combined");
+    var allSendPerFile  = document.getElementById("all-send-perfile");
+    var allResults      = document.getElementById("all-results");
+    var allFilesInfo    = document.getElementById("all-files-info");
+
+    var currentKey         = null;
+    var chatHistory        = [];
+    var perFileChatHistory = {};
+
+    /* ── Tab switching ─────────────────────────────────────────────── */
+    function switchTab(tab) {
+      document.getElementById("tab-perfile").classList.toggle("active", tab === "perfile");
+      document.getElementById("tab-allfiles").classList.toggle("active", tab === "allfiles");
+      document.getElementById("tab-sms").classList.toggle("active", tab === "sms");
+      document.getElementById("tab-btn-perfile").classList.toggle("active", tab === "perfile");
+      document.getElementById("tab-btn-allfiles").classList.toggle("active", tab === "allfiles");
+      document.getElementById("tab-btn-sms").classList.toggle("active", tab === "sms");
+      if (tab === "allfiles") updateAllFilesInfo();
+      if (tab === "sms") refreshSmsFileSelect();
+    }
+
+    function updateAllFilesInfo() {
+      if (!uploadedKeys.length) {
+        allFilesInfo.textContent = "No files uploaded yet.";
+      } else {
+        allFilesInfo.textContent = uploadedKeys.length + " file(s) available: " + uploadedKeys.map(function(f) { return f.name; }).join(", ");
+      }
+    }
+
+    function refreshChatDropdown() {
+      chatSelect.innerHTML = "<option value=\"\">— select a file —</option>";
+      uploadedKeys.forEach(function(item) {
+        var opt = document.createElement("option");
+        opt.value = item.key; opt.textContent = item.name;
+        chatSelect.appendChild(opt);
+      });
+    }
+
+    function startChatWith(key, name) {
+      chatSection.style.display = "block";
+      switchTab("perfile");
+      chatSelect.value = key;
+      switchFile(key);
+      chatInput.focus();
+      chatSection.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function switchFile(key) {
+      if (currentKey) perFileChatHistory[currentKey] = chatHistory;
+      currentKey  = key;
+      chatHistory = perFileChatHistory[key] || [];
+      renderHistory();
+      chatInput.disabled = !key;
+      chatSend.disabled  = !key;
+      if (key && chatHistory.length === 0) autoSummarize(key);
+    }
+
+    function autoSummarize(key) {
+      var summaryQ = "Please give a 2-3 sentence summary of what this file contains, then end with: 'Feel free to ask me anything about it!'";
+      chatInput.disabled = true; chatSend.disabled = true;
+      addBubble("thinking", "Reading your file and generating a summary…", "thinking-bubble");
+      fetch(CHAT_ENDPOINT, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ s3_key: key, question: summaryQ, chat_history: [] }),
+      }).then(function(res) {
+        if (!res.ok) throw new Error("Server error " + res.status);
+        return res.json();
+      }).then(function(data) {
+        var el = document.getElementById("thinking-bubble");
+        if (el) el.remove();
+        addBubble("assistant", data.answer);
+        chatHistory.push({ role: "assistant", content: data.answer });
+        perFileChatHistory[key] = chatHistory;
+      }).catch(function(err) {
+        var el = document.getElementById("thinking-bubble");
+        if (el) el.remove();
+        addBubble("assistant", "File loaded. Ask me anything about it!");
+      }).finally(function() {
+        chatInput.disabled = false; chatSend.disabled = false; chatInput.focus();
+      });
+    }
+
+    chatSelect.addEventListener("change", function() { switchFile(chatSelect.value); });
+
+    function renderHistory() {
+      chatMessages.innerHTML = "";
+      if (!chatHistory.length) {
+        chatMessages.innerHTML = "<span style=\"color:#9ca3af;font-size:0.82rem;align-self:center;\">Select a file above to get started…</span>";
+        return;
+      }
+      chatHistory.forEach(function(msg) { if (msg.role !== "system") addBubble(msg.role, msg.content); });
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function addBubble(role, text, id) {
+      var div = document.createElement("div");
+      div.className = "chat-bubble " + role;
+      if (id) div.id = id;
+      div.textContent = text;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return div;
+    }
+
+    async function sendQuestion() {
+      var q = chatInput.value.trim();
+      if (!q || !currentKey) return;
+      chatInput.value = ""; chatSend.disabled = true; chatInput.disabled = true;
+      var placeholder = chatMessages.querySelector("span");
+      if (placeholder) placeholder.remove();
+      addBubble("user", q);
+      chatHistory.push({ role: "user", content: q });
+      var thinkingEl = addBubble("thinking", "Thinking...", "thinking-bubble");
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ s3_key: currentKey, question: q, chat_history: chatHistory.slice(0, -1) }),
+        });
+        if (!res.ok) throw new Error("Server error " + res.status);
+        var data = await res.json();
+        thinkingEl.remove();
+        addBubble("assistant", data.answer);
+        chatHistory.push({ role: "assistant", content: data.answer });
+        perFileChatHistory[currentKey] = chatHistory;
+      } catch (err) {
+        thinkingEl.remove();
+        addBubble("assistant", "Sorry, something went wrong. Please try again.");
+        chatHistory.pop();
+      }
+      chatSend.disabled = false; chatInput.disabled = false; chatInput.focus();
+    }
+
+    chatSend.addEventListener("click", sendQuestion);
+    chatInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
+    });
+
+    /* ── Ask All Files ─────────────────────────────────────────────── */
+    function allSetBusy(busy) {
+      allSendCombined.disabled = busy;
+      allSendPerFile.disabled  = busy;
+      allInput.disabled        = busy;
+    }
+
+    function allShowQuestion(q) {
+      allResults.innerHTML = "";
+      var qEl = document.createElement("div");
+      qEl.style.cssText = "font-size:0.82rem;font-weight:600;color:#374151;margin-bottom:12px;padding:10px 12px;background:#eef2ff;border-radius:8px;";
+      qEl.textContent = "Q: " + q;
+      allResults.appendChild(qEl);
+    }
+
+    async function askCombined() {
+      var q = allInput.value.trim();
+      if (!q || !uploadedKeys.length) { updateAllFilesInfo(); return; }
+      allSetBusy(true);
+      allShowQuestion(q);
+      var box = document.createElement("div");
+      box.className = "combined-answer";
+      var header = document.createElement("div");
+      header.className = "combined-header";
+      header.textContent = "Combined answer across " + uploadedKeys.length + " file(s)";
+      var body = document.createElement("div");
+      body.className = "combined-body loading";
+      body.textContent = "Reading all files and reasoning across them…";
+      box.appendChild(header); box.appendChild(body);
+      allResults.appendChild(box);
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ s3_keys: uploadedKeys.map(function(f) { return f.key; }), question: q, chat_history: [] }),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var data = await res.json();
+        body.textContent = data.answer;
+        body.className = "combined-body";
+      } catch (err) {
+        body.textContent = "Error: could not get a combined response.";
+        body.className = "combined-body error";
+      }
+      allSetBusy(false);
+      allInput.value = "";
+    }
+
+    async function askPerFile() {
+      var q = allInput.value.trim();
+      if (!q || !uploadedKeys.length) { updateAllFilesInfo(); return; }
+      allSetBusy(true);
+      allShowQuestion(q);
+      var cardBodies = [];
+      uploadedKeys.forEach(function(item) {
+        var card = document.createElement("div");
+        card.className = "all-result-card";
+        var hdr = document.createElement("div");
+        hdr.className = "card-file-name";
+        hdr.textContent = item.name;
+        var body = document.createElement("div");
+        body.className = "card-body loading";
+        body.textContent = "Asking…";
+        card.appendChild(hdr); card.appendChild(body);
+        allResults.appendChild(card);
+        cardBodies.push({ body: body, key: item.key });
+      });
+      var promises = cardBodies.map(function(item) {
+        return fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ s3_key: item.key, question: q, chat_history: [] }),
+        }).then(function(res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        }).then(function(data) {
+          item.body.textContent = data.answer;
+          item.body.className = "card-body";
+        }).catch(function() {
+          item.body.textContent = "Error: could not get a response.";
+          item.body.className = "card-body error";
+        });
+      });
+      await Promise.all(promises);
+      allSetBusy(false);
+      allInput.value = "";
+    }
+
+    allSendCombined.addEventListener("click", askCombined);
+    allSendPerFile.addEventListener("click", askPerFile);
+    allInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askCombined(); }
+    });
+
+    /* ── SMS: populate file dropdown ─────────────────────────────────── */
+    function refreshSmsFileSelect() {
+      var sel = document.getElementById("sms-file-select");
+      var prev = sel.value;
+      sel.innerHTML = "<option value=''>— select a patient Excel file —</option>";
+      uploadedKeys.forEach(function(f) {
+        if (/\.(xlsx|xls|csv)$/i.test(f.name)) {
+          var opt = document.createElement("option");
+          opt.value = f.key;
+          opt.textContent = f.name;
+          sel.appendChild(opt);
+        }
+      });
+      if (prev && sel.querySelector("option[value='" + prev + "']")) sel.value = prev;
+      var opts = sel.querySelectorAll("option[value]");
+      if (opts.length === 1) sel.value = opts[0].value;
+    }
+
+    /* ── SMS: send bill reminders ─────────────────────────────────────── */
+    async function sendSmsReminders() {
+      var sel = document.getElementById("sms-file-select");
+      var excelKey = sel.value;
+      if (!excelKey) { showSmsStatus("Please select a patient Excel file first.", "error"); return; }
+      var btn = document.getElementById("sms-send-btn");
+      btn.disabled = true; btn.textContent = "Sending…";
+      showSmsStatus("Triggering SMS reminders…", "info");
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "trigger_sms", excel_key: excelKey }),
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.message || "HTTP " + res.status);
+        showSmsStatus("✓ " + (data.message || "SMS reminders are being sent!"), "success");
+      } catch (err) {
+        showSmsStatus("Error: " + err.message, "error");
+      }
+      btn.disabled = false; btn.textContent = "Send Reminders";
+    }
+
+    function showSmsStatus(msg, type) {
+      var el = document.getElementById("sms-status");
+      el.textContent = msg;
+      el.className = "sms-status " + type;
+    }
+
+    /* ── SMS: load patient replies ─────────────────────────────────────── */
+    async function loadSmsConversations() {
+      var wrap = document.getElementById("sms-conversations-wrap");
+      var btn  = document.getElementById("sms-refresh-btn");
+      btn.disabled = true;
+      wrap.innerHTML = "<div class='sms-empty'>Loading replies…</div>";
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get_sms_conversations" }),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var data = await res.json();
+        var convs = data.conversations || [];
+        if (!convs.length) {
+          wrap.innerHTML = "<div class='sms-empty'>No messages sent yet. Send bill reminders above to get started.</div>";
+        } else {
+          var html = "<div class='sms-table-wrap'><table class='sms-table'><thead><tr><th>Patient</th><th>Phone</th><th>Amount Due</th><th>Status</th><th>Last Patient Reply</th></tr></thead><tbody>";
+          convs.forEach(function(c) {
+            var badge = c.opt_out ? "<span class='sms-badge optout'>Opted Out</span>" : c.reply_count > 0 ? "<span class='sms-badge replied'>Replied (" + c.reply_count + ")</span>" : "<span class='sms-badge waiting'>Sent</span>";
+            var reply = c.last_reply ? ("<span>" + c.last_reply.substring(0, 80) + (c.last_reply.length > 80 ? "…" : "") + "</span>") : "<span style='color:#9ca3af;font-style:italic;'>—</span>";
+            html += "<tr><td>" + (c.patient_name || "—") + "</td><td style='white-space:nowrap;'>" + c.phone + "</td><td>$" + (c.amount_due || "0") + "</td><td>" + badge + "</td><td style='max-width:260px;word-break:break-word;'>" + reply + "</td></tr>";
+          });
+          html += "</tbody></table></div><p style='font-size:0.78rem;color:var(--text-muted);margin-top:10px;'>" + convs.length + " patient(s)</p>";
+          wrap.innerHTML = html;
+        }
+      } catch (err) {
+        wrap.innerHTML = "<div class='sms-empty' style='color:#dc2626;'>Could not load replies. Check that s3-chat Lambda is deployed with the latest code.</div>";
+      }
+      btn.disabled = false;
+    }
+
+    /* ── Speech-to-text ────────────────────────────────────────────── */
+    (function() {
+      var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        document.querySelectorAll(".mic-btn").forEach(function(b) { b.style.display = "none"; });
+        return;
+      }
+      function makeMic(btnId, targetId) {
+        var btn      = document.getElementById(btnId);
+        var textarea = document.getElementById(targetId);
+        var recog    = new SpeechRecognition();
+        recog.lang = "en-US"; recog.continuous = true; recog.interimResults = true;
+        var isListening = false, baseText = "";
+        recog.onstart = function() { isListening = true; baseText = textarea.value; btn.classList.add("listening"); btn.title = "Click to stop"; };
+        recog.onresult = function(e) {
+          var interim = "", final = "";
+          for (var i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) final += e.results[i][0].transcript;
+            else interim += e.results[i][0].transcript;
+          }
+          if (final) baseText += (baseText && !baseText.endsWith(" ") ? " " : "") + final.trim();
+          textarea.value = baseText + (interim ? " " + interim : "");
+        };
+        recog.onerror = function() { stopListening(); };
+        recog.onend   = function() { if (isListening) { try { recog.start(); } catch(e) { stopListening(); } } };
+        function stopListening() { isListening = false; btn.classList.remove("listening"); btn.title = "Click to speak"; try { recog.stop(); } catch(e) {} textarea.value = textarea.value.trim(); }
+        btn.addEventListener("click", function() { if (isListening) stopListening(); else try { recog.start(); } catch(e) {} });
+      }
+      makeMic("mic-perfile", "chat-input");
+      makeMic("mic-all",     "all-input");
+    })();
+
+    /* ── Alert helpers (from auth.js pattern) ──────────────────────── */
+    function showAlert(id, msg) { var el = document.getElementById(id); el.textContent = msg; el.classList.add("visible"); }
+    function hideAlert(id) { var el = document.getElementById(id); el.textContent = ""; el.classList.remove("visible"); }
+  </script>
+</body>
+</html>
