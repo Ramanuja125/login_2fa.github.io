@@ -56,6 +56,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script src="auth.js"></script>
   <script>
+    // Already logged in — skip straight to dashboard
+    if (getSessionUser()) {
+      window.location.href = "dashboard.html";
+    }
+
     const emailEl = document.getElementById("email");
     const pwdEl   = document.getElementById("password");
 
@@ -86,12 +91,14 @@
         await loginUser(email, pwd);
         window.location.href = "verify.html";
       } catch (err) {
-        console.error("Login error:", err.code, err.message);
+        console.error("Login error:", err.code, err.message, err.status, err.text, err);
         let msg = "Incorrect email or password. Please try again.";
         if (err.code === "auth/too-many-requests")  msg = "Too many attempts. Please try again later.";
         if (err.code === "auth/user-not-found")     msg = "No account found with this email.";
         if (err.code === "auth/invalid-credential") msg = "Incorrect email or password.";
         if (err.code === "auth/wrong-password")     msg = "Incorrect password.";
+        // EmailJS failure (no .code property) — Firebase auth succeeded but OTP email failed
+        if (!err.code) msg = "Login succeeded but we could not send your verification email. Please check the EmailJS service connection at emailjs.com.";
         showAlert("alert-error", msg);
         btn.disabled = false;
         btn.textContent = "Sign In";
