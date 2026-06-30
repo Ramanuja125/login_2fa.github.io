@@ -230,14 +230,21 @@ function checkOtpComplete(inputs) {
 // Clears it automatically when the last tab closes.
 // ─────────────────────────────────────────────
 (function initTabSession() {
-  // Give this tab a unique ID
-  const tabId = Date.now().toString(36) + Math.random().toString(36).slice(2);
-  sessionStorage.setItem("tab_id", tabId);
+  // Reuse existing tab_id if navigating within the same tab.
+  // sessionStorage persists across page navigations but clears on tab close —
+  // so a new tabId is only created when a genuinely new tab opens.
+  let tabId = sessionStorage.getItem("tab_id");
+  if (!tabId) {
+    tabId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    sessionStorage.setItem("tab_id", tabId);
+  }
 
-  // Register tab
+  // Register tab (only if not already present)
   const tabs = JSON.parse(localStorage.getItem("open_tabs") || "[]");
-  tabs.push(tabId);
-  localStorage.setItem("open_tabs", JSON.stringify(tabs));
+  if (!tabs.includes(tabId)) {
+    tabs.push(tabId);
+    localStorage.setItem("open_tabs", JSON.stringify(tabs));
+  }
 
   // Deregister on close — if last tab, wipe the session
   window.addEventListener("beforeunload", function () {
