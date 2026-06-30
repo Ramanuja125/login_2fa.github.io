@@ -50,6 +50,15 @@
 
   <script src="auth.js"></script>
   <script>
+    // Already logged in — skip verification
+    if (getSessionUser()) {
+      window.location.href = "dashboard.html";
+    }
+    // No OTP in progress — shouldn't be on this page directly
+    if (!sessionStorage.getItem("otp_data")) {
+      window.location.href = "index.html";
+    }
+
     initOtpInputs();
 
     document.getElementById("verify-btn").addEventListener("click", () => {
