@@ -114,9 +114,7 @@ async function loginUser(email, password) {
 // ─────────────────────────────────────────────
 async function signOut() {
   localStorage.removeItem("auth_user");
-  localStorage.removeItem("open_tabs");
   sessionStorage.removeItem("otp_data");
-  sessionStorage.removeItem("tab_id");
   try { await getAuth().signOut(); } catch (e) { /* ignore */ }
   window.location.href = "index.html";
 }
@@ -225,36 +223,11 @@ function checkOtpComplete(inputs) {
 }
 
 // ─────────────────────────────────────────────
-// TAB SESSION TRACKER
-// Keeps auth_user in localStorage (shared across tabs).
-// Clears it automatically when the last tab closes.
+// SESSION NOTE
+// auth_user lives in localStorage so it is shared across tabs —
+// opening a new tab while logged in does not require re-login.
+// Session ends on explicit Sign Out (signOut() above).
+// beforeunload is intentionally NOT used to clear the session:
+// it fires on every page navigation, not just tab close, and
+// cannot reliably distinguish the two cases.
 // ─────────────────────────────────────────────
-(function initTabSession() {
-  // Reuse existing tab_id if navigating within the same tab.
-  // sessionStorage persists across page navigations but clears on tab close —
-  // so a new tabId is only created when a genuinely new tab opens.
-  let tabId = sessionStorage.getItem("tab_id");
-  if (!tabId) {
-    tabId = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    sessionStorage.setItem("tab_id", tabId);
-  }
-
-  // Register tab (only if not already present)
-  const tabs = JSON.parse(localStorage.getItem("open_tabs") || "[]");
-  if (!tabs.includes(tabId)) {
-    tabs.push(tabId);
-    localStorage.setItem("open_tabs", JSON.stringify(tabs));
-  }
-
-  // Deregister on close — if last tab, wipe the session
-  window.addEventListener("beforeunload", function () {
-    let remaining = JSON.parse(localStorage.getItem("open_tabs") || "[]")
-      .filter(function (id) { return id !== tabId; });
-    if (remaining.length === 0) {
-      localStorage.removeItem("auth_user");
-      localStorage.removeItem("open_tabs");
-    } else {
-      localStorage.setItem("open_tabs", JSON.stringify(remaining));
-    }
-  });
-})();
