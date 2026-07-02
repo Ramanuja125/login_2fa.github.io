@@ -457,6 +457,15 @@
         <div id="alert-error"   class="alert alert-error"   role="alert"></div>
         <div id="alert-success" class="alert alert-success" role="alert"></div>
 
+        <!-- FHIR Pull -->
+        <div id="fhir-pull-wrap" style="margin-bottom:24px;padding:16px 20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.95rem;font-weight:600;color:#0369a1;">🏥 Pull FHIR Patient Data to S3</div>
+            <div style="font-size:0.8rem;color:#0284c7;margin-top:3px;" id="fhir-pull-msg">Pulls live synthetic patient records (diagnoses, labs, medications) into your storage. Once done, load <strong>fhir_patients.json</strong> from Load Stored Files to chat with it.</div>
+          </div>
+          <button class="btn btn-primary" id="fhir-pull-btn" onclick="triggerFhirPull()" style="white-space:nowrap;flex-shrink:0;padding:10px 22px;">Pull Now</button>
+        </div>
+
         <!-- Mode selection -->
         <div class="mode-select">
           <div class="mode-card active" id="mode-upload" onclick="selectMode('upload')">
@@ -512,7 +521,6 @@
             <button class="chat-tab-btn active" id="tab-btn-perfile"  onclick="switchTab('perfile')">Per File Chat</button>
             <button class="chat-tab-btn"        id="tab-btn-allfiles" onclick="switchTab('allfiles')">Ask All Files</button>
             <button class="chat-tab-btn" id="tab-btn-sms" style="opacity:0.45;cursor:not-allowed;position:relative;" title="Coming Soon">📱 SMS Reminders</button>
-			<!-- <button class="chat-tab-btn" id="tab-btn-sms" onclick="switchTab('sms')">📱 SMS Reminders</button> -->
           </div>
 
           <!-- Tab 1: Per File -->
@@ -1202,6 +1210,32 @@
       makeMic("mic-perfile", "chat-input");
       makeMic("mic-all",     "all-input");
     })();
+
+    /* ── FHIR Pull ─────────────────────────────────────────────────── */
+    async function triggerFhirPull() {
+      var btn = document.getElementById("fhir-pull-btn");
+      var msg = document.getElementById("fhir-pull-msg");
+      btn.disabled = true;
+      btn.textContent = "Pulling…";
+      msg.textContent = "Contacting SMART FHIR sandbox…";
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "trigger_fhir_pull" }),
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.message || "HTTP " + res.status);
+        msg.innerHTML = "✓ " + data.message;
+        btn.textContent = "Pull Again";
+        btn.disabled = false;
+        // Invalidate stored files cache so the new file shows up
+        storedFilesCache = null;
+      } catch (err) {
+        msg.textContent = "Error: " + err.message;
+        btn.textContent = "Pull Now";
+        btn.disabled = false;
+      }
+    }
 
     /* ── Alert helpers (from auth.js pattern) ──────────────────────── */
     function showAlert(id, msg) { var el = document.getElementById(id); el.textContent = msg; el.classList.add("visible"); }
