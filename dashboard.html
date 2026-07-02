@@ -461,7 +461,7 @@
         <div id="fhir-pull-wrap" style="margin-bottom:24px;padding:16px 20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
           <div>
             <div style="font-size:0.95rem;font-weight:600;color:#0369a1;">🏥 Pull FHIR Patient Data to S3</div>
-            <div style="font-size:0.8rem;color:#0284c7;margin-top:3px;" id="fhir-pull-msg">Pulls live synthetic patient records (diagnoses, labs, medications) into your storage. Once done, load <strong>fhir_patients.xlsx</strong> from Load Stored Files to chat with it.</div>
+            <div style="font-size:0.8rem;color:#0284c7;margin-top:3px;" id="fhir-pull-msg">Pulls live synthetic patient records (diagnoses, labs, medications) into your storage. Once done, load <strong>fhir_patients.xlsx</strong> from Load Stored Files to chat with it. <em>~1 min for 100 patients, ~10 min for 1000.</em></div>
           </div>
           <button class="btn btn-primary" id="fhir-pull-btn" onclick="triggerFhirPull()" style="white-space:nowrap;flex-shrink:0;padding:10px 22px;">Pull Now</button>
         </div>
@@ -1229,7 +1229,7 @@
         if (!res.ok) throw new Error(data.message || "HTTP " + res.status);
         // Start polling every 10s until fhir_patients.xlsx appears in S3
         var elapsed = 0;
-        var maxWait = 600; // 10 minutes
+        var maxWait = 900; // 15 minutes (covers up to ~1000 patients)
         if (fhirPollTimer) clearInterval(fhirPollTimer);
         fhirPollTimer = setInterval(async function() {
           elapsed += 10;
