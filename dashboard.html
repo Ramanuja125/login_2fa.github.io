@@ -294,6 +294,9 @@
     .stored-actions { display: flex; gap: 8px; margin-bottom: 4px; }
     .stored-actions a { font-size: 0.75rem; color: var(--primary); cursor: pointer; text-decoration: underline; }
     .stored-empty { text-align: center; color: var(--text-muted); font-size: 0.84rem; padding: 28px 0; }
+    .dl-btn { flex-shrink: 0; background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 0.8rem; cursor: pointer; color: var(--primary); transition: background 0.15s; }
+    .dl-btn:hover { background: rgba(99,102,241,0.08); }
+    .dl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* ── Chat section ───────────────────────────────────────────────── */
     .chat-section { display: none; margin-top: 28px; border-top: 1px solid var(--border); padding-top: 20px; }
@@ -461,7 +464,7 @@
         <div id="fhir-pull-wrap" style="margin-bottom:24px;padding:16px 20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
           <div>
             <div style="font-size:0.95rem;font-weight:600;color:#0369a1;">🏥 Pull FHIR Patient Data to S3</div>
-            <div style="font-size:0.8rem;color:#0284c7;margin-top:3px;" id="fhir-pull-msg">Pulls live synthetic patient records (diagnoses, labs, medications) into your storage. Once done, load <strong>fhir_patients.xlsx</strong> from Load Stored Files to chat with it. <em>~1 min for 100 patients, ~5 min for 1000.</em></div>
+            <div style="font-size:0.8rem;color:#0284c7;margin-top:3px;" id="fhir-pull-msg">Pulls live synthetic patient records (diagnoses, labs, medications) into your storage as <strong>fhir_patients.xlsx</strong> and <strong>fhir_patients.json</strong>. Load either from Stored Files to chat, or download directly. <em>~1 min for 100 patients, ~5 min for 1000.</em></div>
           </div>
           <button class="btn btn-primary" id="fhir-pull-btn" onclick="triggerFhirPull()" style="white-space:nowrap;flex-shrink:0;padding:10px 22px;">Pull Now</button>
         </div>
@@ -702,7 +705,8 @@
           li.innerHTML =
             "<input type='checkbox' class='stored-cb' data-key='" + f.key + "' data-name='" + f.name + "'>" +
             "<span class='sl-name' title='" + f.name + "'>" + f.name + "</span>" +
-            "<span class='sl-meta'>" + formatSize(f.size) + " &nbsp;·&nbsp; " + f.last_modified + "</span>";
+            "<span class='sl-meta'>" + formatSize(f.size) + " &nbsp;·&nbsp; " + f.last_modified + "</span>" +
+            "<button class='dl-btn' title='Download' data-key='" + f.key + "' data-name='" + f.name + "' onclick='downloadFile(event, this)'>⬇</button>";
           li.querySelector(".stored-cb").addEventListener("change", updateStoredLoadBtn);
           li.addEventListener("click", function(e) {
             if (e.target.tagName !== "INPUT") {
@@ -1211,6 +1215,33 @@
       makeMic("mic-all",     "all-input");
     })();
 
+    /* ── Download stored file ─────────────────────────────────────── */
+    async function downloadFile(e, btn) {
+      e.stopPropagation(); // don't toggle checkbox
+      var key  = btn.getAttribute("data-key");
+      var name = btn.getAttribute("data-name");
+      btn.disabled = true;
+      btn.textContent = "…";
+      try {
+        var res = await fetch(CHAT_ENDPOINT, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get_download_url", key: key }),
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || "HTTP " + res.status);
+        var a = document.createElement("a");
+        a.href     = data.url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (err) {
+        alert("Download failed: " + err.message);
+      }
+      btn.disabled = false;
+      btn.textContent = "⬇";
+    }
+
     /* ── FHIR Pull ─────────────────────────────────────────────────── */
     var fhirPollTimer = null;
 
@@ -1240,12 +1271,12 @@
               body: JSON.stringify({ action: "list_files" }),
             });
             var ld = await lr.json();
-            var found = (ld.files || []).find(function(f) {
-              return f.name === "fhir_patients.xlsx";
-            });
-            if (found) {
+            var files = ld.files || [];
+            var hasXlsx = files.some(function(f) { return f.name === "fhir_patients.xlsx"; });
+            var hasJson = files.some(function(f) { return f.name === "fhir_patients.json"; });
+            if (hasXlsx && hasJson) {
               clearInterval(fhirPollTimer);
-              msg.innerHTML = "✅ <strong>fhir_patients.xlsx</strong> is ready! Go to <strong>Load Stored Files</strong> to load and chat with it.";
+              msg.innerHTML = "✅ Ready! <strong>fhir_patients.xlsx</strong> and <strong>fhir_patients.json</strong> are in <strong>Load Stored Files</strong>. You can load or download either.";
               btn.textContent = "Pull Again";
               btn.disabled = false;
               storedFilesCache = null; // refresh file list
