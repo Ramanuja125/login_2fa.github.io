@@ -1092,13 +1092,7 @@
         cardBodies.push({ body: body, key: item.key });
       });
       var promises = cardBodies.map(function(item) {
-        return fetch(CHAT_ENDPOINT, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ s3_key: item.key, question: q, chat_history: [] }),
-        }).then(function(res) {
-          if (!res.ok) throw new Error("HTTP " + res.status);
-          return res.json();
-        }).then(function(data) {
+        return askQuestion(item.key, q, []).then(function(data) {
           item.body.textContent = data.answer;
           item.body.className = "card-body";
         }).catch(function() {
