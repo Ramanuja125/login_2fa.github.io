@@ -234,20 +234,21 @@
     .upload-area {
       border: 2px dashed var(--border);
       border-radius: 10px;
-      padding: 32px 20px;
+      padding: 8px 20px;
       text-align: center;
       cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
       background: transparent;
     }
     .upload-area:hover, .upload-area.drag-over {
       border-color: var(--primary);
       background: rgba(99, 102, 241, 0.04);
     }
-    .upload-area svg { width: 40px; height: 40px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; margin-bottom: 10px; }
+    .upload-area svg { display: block; width: 16px; height: 16px; stroke: var(--text-muted); fill: none; stroke-width: 2.2; margin: 0 auto 4px; }
     .upload-area p { margin: 0; font-size: 0.875rem; color: var(--text-muted); }
-    .upload-area .file-count { margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: var(--primary); }
+    .upload-area .ua-primary { color: #2563eb; font-weight: 700; }
+    .upload-area .file-count { margin-top: 4px; font-size: 0.85rem; font-weight: 600; color: var(--primary); }
     #file-input { display: none; }
 
     .file-list { list-style: none; padding: 0; margin: 0 0 16px; display: none; }
@@ -260,26 +261,26 @@
     .file-list li .fstatus.done      { color: #22c55e; cursor: pointer; text-decoration: underline; }
     .file-list li .fstatus.error     { color: #ef4444; }
 
-    .progress-bar-wrap { width: 100%; background: var(--border); border-radius: 99px; height: 6px; margin: 12px 0; display: none; }
+    .progress-bar-wrap { width: 100%; background: var(--border); border-radius: 99px; height: 6px; margin: 4px 0; display: none; }
     .progress-bar-fill { height: 6px; border-radius: 99px; background: var(--primary); width: 0%; transition: width 0.3s; }
-    .upload-status { text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; min-height: 18px; }
+    .upload-status { text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; min-height: 0; }
     .btn-row { display: flex; gap: 10px; }
     .btn-row .btn { flex: 1; }
 
     /* ── Mode selection ─────────────────────────────────────────────── */
-    .mode-select { display: flex; gap: 12px; margin-bottom: 20px; }
+    .mode-select { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
     .mode-card {
-      flex: 1; border: 2px solid var(--border); border-radius: 12px;
-      padding: 20px 14px; text-align: center; cursor: pointer;
+      border: 2px solid var(--border); border-radius: 12px;
+      padding: 5px 12px; text-align: center; cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
       background: transparent;
     }
     .mode-card:hover { border-color: var(--primary); background: rgba(99,102,241,0.04); }
     .mode-card.active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
-    .mode-card svg { width: 32px; height: 32px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; margin-bottom: 8px; }
+    .mode-card svg { display: block; width: 16px; height: 16px; stroke: var(--text-muted); fill: none; stroke-width: 1.6; margin: 0 auto 3px; }
     .mode-card.active svg { stroke: var(--primary); }
-    .mode-card .mode-title { font-size: 0.88rem; font-weight: 600; color: var(--text); margin: 0 0 4px; }
-    .mode-card .mode-desc  { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
+    .mode-card .mode-title { font-size: 0.80rem; font-weight: 600; color: var(--text); margin: 0 0 1px; }
+    .mode-card .mode-desc  { font-size: 0.65rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
 
     /* ── Load stored files panel ────────────────────────────────────── */
     .stored-panel { display: none; }
@@ -464,8 +465,8 @@
         <div id="upload-panel">
           <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <p>Click to choose files, or drag &amp; drop here</p>
-            <p style="font-size:0.75rem; margin-top:4px;">Supports Excel, PDF, Word, CSV, TXT — multiple files at once</p>
+            <p class="ua-primary">Click to choose files, or drag &amp; drop here</p>
+            <p style="font-size:0.75rem; margin-top:2px;">Supports Excel, PDF, Word, CSV, TXT — multiple files at once</p>
             <div class="file-count" id="file-count"></div>
           </div>
           <input type="file" id="file-input" multiple />
