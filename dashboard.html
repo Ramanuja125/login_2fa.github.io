@@ -625,6 +625,43 @@
     var CHAT_ENDPOINT = "https://aoqop7lkph.execute-api.us-east-2.amazonaws.com/chat";
     // SMS actions reuse the same /chat endpoint — no new API Gateway routes needed
 
+    // Fast DuckDB SQL path for CSV/TXT/Excel — see STRUCTURED_QUERY_SETUP.md.
+    // Replace with the real Lambda Function URL after deploying it.
+    var STRUCTURED_QUERY_ENDPOINT = "https://YOUR_FUNCTION_ID.lambda-url.us-east-2.on.aws/";
+    var STRUCTURED_QUERY_EXTENSIONS = ["csv", "txt", "xlsx", "xls"];
+
+    function isStructuredQueryFile(key) {
+      if (!key || STRUCTURED_QUERY_ENDPOINT.indexOf("YOUR_FUNCTION_ID") !== -1) return false;
+      var ext = key.split(".").pop().toLowerCase();
+      return STRUCTURED_QUERY_EXTENSIONS.indexOf(ext) !== -1;
+    }
+
+    // Tries the fast DuckDB path first for tabular files; falls back to the
+    // full-text CHAT_ENDPOINT on any error (wrong file type, bad SQL, network
+    // issue, whatever) so the user always gets an answer either way.
+    async function askQuestion(key, question, chatHistory) {
+      if (isStructuredQueryFile(key)) {
+        try {
+          var sqRes = await fetch(STRUCTURED_QUERY_ENDPOINT, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ s3_key: key, question: question }),
+          });
+          if (sqRes.ok) {
+            var sqData = await sqRes.json();
+            if (sqData && sqData.answer) return sqData;
+          }
+        } catch (err) {
+          // fall through to general chat below
+        }
+      }
+      var res = await fetch(CHAT_ENDPOINT, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ s3_key: key, question: question, chat_history: chatHistory || [] }),
+      });
+      if (!res.ok) throw new Error("Server error " + res.status);
+      return res.json();
+    }
+
     var user = getSessionUser();
     if (!user) {
       window.location.href = "index.html";
@@ -969,12 +1006,7 @@
       chatHistory.push({ role: "user", content: q });
       var thinkingEl = addBubble("thinking", "Thinking...", "thinking-bubble");
       try {
-        var res = await fetch(CHAT_ENDPOINT, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ s3_key: currentKey, question: q, chat_history: chatHistory.slice(0, -1) }),
-        });
-        if (!res.ok) throw new Error("Server error " + res.status);
-        var data = await res.json();
+        var data = await askQuestion(currentKey, q, chatHistory.slice(0, -1));
         thinkingEl.remove();
         addBubble("assistant", data.answer);
         chatHistory.push({ role: "assistant", content: data.answer });
