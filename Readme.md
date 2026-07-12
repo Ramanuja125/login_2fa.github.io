@@ -15,10 +15,11 @@
 7. [SMS Bill Reminder System](#sms-bill-reminder-system)
 8. [AWS Setup — Auth & File Chat](#aws-setup--auth--file-chat)
 9. [AWS Setup — SMS System](#aws-setup--sms-system)
-10. [Firebase & EmailJS Setup](#firebase--emailjs-setup)
-11. [File Structure](#file-structure)
-12. [Security Architecture](#security-architecture)
-13. [How to Change Things](#how-to-change-things)
+10. [AWS Setup — Structured Query (DuckDB)](#aws-setup--structured-query-duckdb)
+11. [Firebase & EmailJS Setup](#firebase--emailjs-setup)
+12. [File Structure](#file-structure)
+13. [Security Architecture](#security-architecture)
+14. [How to Change Things](#how-to-change-things)
 
 ---
 
@@ -29,6 +30,7 @@ A HIPAA-conscious, two-factor authenticated patient portal hosted on GitHub Page
 - **Upload** new patient files (Excel, PDF, Word, CSV) to secure cloud storage
 - **Browse** files already in storage and load them instantly
 - **Chat with files** using AI — ask questions about patient records across one or many files
+- **Get exact, instant answers on CSV/Excel data** — questions like "how many patients have HbA1c > 13?" run as real SQL against the file via DuckDB instead of the AI reading and estimating from raw text
 - **Send SMS bill reminders** to patients from a patient Excel file — and receive two-way AI-powered replies
 
 No backend server, no managed database for the web app, no AI framework. Everything runs on managed cloud services stitched together with clean, minimal code.
@@ -52,7 +54,7 @@ No backend server, no managed database for the web app, no AI framework. Everyth
 | 11 | Auto file summary when chat opens | Same Lambda, auto-triggered |
 | 12 | Per-file independent conversation history | Browser memory (JavaScript) |
 | 13 | Ask All Files — Combined Answer | All files merged in one Lambda call |
-| 14 | Ask All Files — Ask Each File | Parallel per-file Lambda calls |
+| 14 | Ask All Files — Ask Each File | Parallel per-file Lambda calls, each tries the fast SQL path first |
 | 15 | Speech-to-text mic button | Browser Web Speech API |
 | 16 | API key never exposed to browser | Lambda environment variable only |
 | 17 | SMS bill reminders to patients | AWS End User Messaging via sms-send Lambda |
@@ -60,6 +62,9 @@ No backend server, no managed database for the web app, no AI framework. Everyth
 | 19 | SMS Reminders tab in portal UI | dashboard.html SMS tab → s3-chat trigger_sms action |
 | 20 | View patient replies in portal | dashboard.html → s3-chat get_sms_conversations → DynamoDB |
 | 21 | Strict AI guardrails on SMS replies | Whitelist system prompt — redirects unknown questions to phone |
+| 22 | Fast, exact SQL answers on CSV/Excel | `structured-query` Lambda — DuckDB + LLM-generated SQL |
+| 23 | Large CSV/TXT files answered without downloading them | DuckDB reads straight from S3 via `httpfs` (streaming) |
+| 24 | Silent fallback to full-text chat | If the SQL path fails for any reason, dashboard.html retries via `/chat` automatically |
 
 ---
 
@@ -73,6 +78,7 @@ No backend server, no managed database for the web app, no AI framework. Everyth
 | Email Transport | Gmail SMTP (via EmailJS) | Actual email delivery |
 | Upload backend | AWS Lambda — `s3-upload-lambda` (Python 3.12) | Generates temporary S3 upload permissions |
 | Chat + List backend | AWS Lambda — `s3-chat` (Python 3.12) | Reads files, extracts text, lists bucket, calls AI, triggers SMS, reads SMS conversations |
+| Structured query backend | AWS Lambda — `structured-query` (Python 3.12), own **Function URL** | DuckDB SQL over CSV/TXT/Excel — exact answers, no context-window truncation |
 | SMS sending | AWS Lambda — `sms-send` (Python 3.12) | Reads patient Excel, sends bill reminder SMS to each patient |
 | SMS replies | AWS Lambda — `sms-reply` (Python 3.12) | Handles inbound patient SMS, calls GPT-5.5, sends AI reply |
 | SMS routing | Amazon SNS | Routes inbound SMS from End User Messaging to sms-reply Lambda |
@@ -80,9 +86,12 @@ No backend server, no managed database for the web app, no AI framework. Everyth
 | SMS phone number | Toll-free number `+18557684735` | Registered in AWS End User Messaging |
 | Conversation state | AWS DynamoDB — `sms-conversations` | Stores per-patient SMS conversation history |
 | Python packages | AWS Lambda Layer — `s3-chat-layer` | openpyxl, pypdf, python-docx, xlrd |
-| API layer | AWS API Gateway (HTTP API) | HTTPS endpoints |
+| Python packages (structured query) | AWS Lambda Layer — `structured-query-deps` | duckdb, openpyxl, xlrd |
+| API layer | AWS API Gateway (HTTP API) | HTTPS endpoints for auth/upload/chat |
+| API layer (structured query) | AWS Lambda **Function URL** (no API Gateway) | Same reasoning as chat originally used API Gateway, but Function URLs have no 29s timeout ceiling |
 | File storage | AWS S3 | All uploaded files stored under `uploads/` prefix |
 | AI model | GPT-5.5 via OpenRouter | File chat + SMS reply AI |
+| AI model (structured query) | `anthropic/claude-sonnet-4-5` via OpenRouter | Writes the SQL, then phrases the SQL result as an answer |
 | Voice input | Browser Web Speech API | Speech-to-text, built into Chrome/Edge |
 | Frontend | HTML, CSS, Vanilla JS | All UI and browser-side logic |
 
@@ -161,6 +170,8 @@ No backend server, no managed database for the web app, no AI framework. Everyth
                                               +-----------------------+
 ```
 
+> **Note:** `structured-query` isn't pictured above — it doesn't go through API Gateway at all. `dashboard.html` calls its **Function URL** directly (`https://dohvyhfsuxvkp76tncjg3lnjuu0xcaxc.lambda-url.us-east-2.on.aws/`) for CSV/TXT/Excel questions, and that Lambda reads straight from the same S3 bucket (streaming for CSV/TXT via DuckDB's `httpfs`, downloaded for Excel). If it fails for any reason, the frontend falls back to `POST /chat` as normal. See [How the AI Works](#how-the-ai-works) and [AWS Setup — Structured Query (DuckDB)](#aws-setup--structured-query-duckdb).
+
 ---
 
 ## User Journey
@@ -201,9 +212,11 @@ Both modes feed into the same chat interface. You can mix both in one session.
 #### Per File Chat
 Select one file. The AI automatically summarises it, then you ask follow-up questions. Conversation history is remembered per file independently.
 
+For CSV, TXT, XLSX, or XLS files, every question first tries the fast **structured-query** path (real SQL via DuckDB) before falling back to full-text chat — see [How the AI Works](#how-the-ai-works).
+
 #### Ask All Files
-- **Combined Answer** — all files merged into one AI call. Best for cross-file questions.
-- **Ask Each File** — same question sent to every file in parallel. Best for comparisons.
+- **Combined Answer** — all files merged into one AI call. Best for cross-file questions. Always uses the full-text `/chat` path, since it needs to reason across mixed file types (PDF + CSV + DOCX together), which a single SQL query can't do.
+- **Ask Each File** — same question sent to every file in parallel. Best for comparisons. Each file independently tries the structured-query fast path first, same as Per File Chat.
 
 #### Voice Input
 Every question box has a mic button. Click, speak, it types itself. Uses the browser's built-in speech recognition — no external service.
@@ -224,6 +237,57 @@ The SMS Reminders tab (third tab in the chat section):
 ---
 
 ## How the AI Works
+
+There are two separate answer paths. Which one runs is decided automatically, per question — the user never picks.
+
+```
+Question asked about a file
+        │
+        ▼
+Is the file CSV, TXT, XLSX, or XLS?
+        │                              │
+       YES                             NO
+        │                              │
+        ▼                              ▼
+Try structured-query (fast path)   Go straight to s3-chat (general path)
+        │
+        ▼
+Succeeded → exact answer shown. Done.
+        │
+        └─ Failed for any reason (bad SQL, network issue, anything)
+                │
+                ▼
+        Silently fall back to s3-chat — the original, always-available path
+```
+
+### Structured Query — Fast DuckDB Path (New)
+
+For CSV/TXT/Excel files, `dashboard.html` calls the `structured-query` Lambda's Function URL directly (not through API Gateway) before it ever calls `/chat`:
+
+```
+1. DuckDB loads the file into an in-memory table called `data`.
+     - CSV/TXT: streamed straight from S3 via the `httpfs` extension —
+       the file is never downloaded or held in memory in full.
+     - XLSX/XLS: openpyxl (read-only streaming mode) downloads and
+       converts to a temp CSV first — DuckDB has no native Excel reader.
+2. DuckDB inspects its own table (DESCRIBE + 5 sample rows) and sends
+   ONLY that schema + sample to the LLM — never the actual data.
+3. The LLM writes one SQL SELECT query. It's checked against a keyword
+   blocklist (no INSERT/UPDATE/DELETE/DROP/ATTACH/etc.) before running.
+4. DuckDB executes that SQL locally, in-process — milliseconds, exact,
+   not an estimate. One automatic retry if the SQL errors (the error
+   is fed back to the LLM to self-correct).
+5. The small result (a few rows) is sent to the LLM a second time,
+   only to phrase it as a natural-language answer.
+6. Response: { "answer": "...", "sql": "<the query that actually ran>" }
+```
+
+**Why this exists:** the general chat path below pastes the whole file into the AI's context window, capped at 60,000 characters — slow on large files and prone to the AI *estimating* counts from truncated text rather than computing them. Routing tabular questions through real SQL first fixes both: answers return in a few seconds and are exact, computed by DuckDB, not guessed by the model.
+
+**Known limits** (falls back to `/chat` automatically when hit):
+- No conversation memory — each question is answered independently, no prior chat turns are passed in. A follow-up like "and what about *his* cholesterol?" has no pronoun to resolve against.
+- Single file only — can't join across multiple uploaded files (e.g. a medications file + a diagnosis file). Use Combined Answer for that.
+- Needs the file to actually be tabular with a header row DuckDB can infer types from.
 
 ### File Chat — Three Steps, No Framework
 
@@ -519,6 +583,96 @@ This means every patient reply automatically triggers sms-reply. No polling need
 
 ---
 
+## AWS Setup — Structured Query (DuckDB)
+
+### Resources
+
+| AWS Resource | Name / Value | Purpose |
+|-------------|-------------|---------|
+| Lambda | `structured-query` | DuckDB SQL Q&A for CSV/TXT/Excel |
+| Lambda Function URL | `https://dohvyhfsuxvkp76tncjg3lnjuu0xcaxc.lambda-url.us-east-2.on.aws/` | Direct HTTPS entry point — no API Gateway route, no 29s timeout ceiling |
+| Lambda Layer | `structured-query-deps` | duckdb, openpyxl, xlrd |
+| IAM Role | `structured-query-role-sstga4p0` | Auto-created when the function was made "from scratch" — separate from `s3-upload-lambda-role` |
+
+### Lambda Layer — Build With the Correct Python ABI
+
+Building this in CloudShell with a plain `pip install duckdb ...` can silently grab a wheel built for CloudShell's own Python version, not Lambda's Python 3.12 runtime — this fails at runtime with `No module named '_duckdb'` even though the layer attaches fine. Force the exact platform/version instead:
+
+```bash
+mkdir -p python
+pip install \
+  --platform manylinux2014_x86_64 \
+  --target=python \
+  --implementation cp \
+  --python-version 3.12 \
+  --only-binary=:all: \
+  duckdb openpyxl xlrd
+
+zip -r layer.zip python/
+aws lambda publish-layer-version \
+  --layer-name structured-query-deps \
+  --zip-file fileb://layer.zip \
+  --compatible-runtimes python3.12 \
+  --compatible-architectures x86_64 \
+  --region us-east-2
+```
+
+The function's **Configuration → General configuration → Architecture** must be `x86_64` to match.
+
+### IAM — S3 Read Permission
+
+The auto-created execution role has no S3 access by default. Add:
+
+```bash
+aws iam put-role-policy \
+  --role-name structured-query-role-sstga4p0 \
+  --policy-name s3-get-emr-lab-bucket \
+  --policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [{
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::emr-lab-bucket-699092321120-us-east-2-an/*"
+    }]
+  }'
+```
+
+### Lambda Function — `structured-query`
+
+- Runtime: Python 3.12 | Role: `structured-query-role-sstga4p0` | Layer: `structured-query-deps`
+- Timeout: 1 min | Memory: 1024 MB | Ephemeral storage (/tmp): 2048 MB (Excel path only — CSV/TXT never touch disk)
+- Env vars:
+
+| Variable | Value |
+|----------|-------|
+| `BUCKET_NAME` | `emr-lab-bucket-699092321120-us-east-2-an` |
+| `BUCKET_REGION` | `us-east-2` |
+| `ALLOWED_ORIGINS` | `https://kanikayears.com` |
+| `OPENROUTER_API_KEY` | `sk-or-...` — same key used elsewhere |
+| `LLM_MODEL` | `anthropic/claude-sonnet-4-5` |
+
+### Function URL & CORS — Important Gotcha
+
+CORS is configured **only** on the Function URL itself (Configuration → Function URL → CORS: Allow origin `https://kanikayears.com`, Allow headers `content-type`, Allow methods `POST`). AWS injects the `Access-Control-Allow-*` headers automatically on every response once this is set — including real POST responses, not just the OPTIONS preflight.
+
+**Do not also set these headers inside the Lambda code.** Doing so produces a browser error like:
+> `Access-Control-Allow-Origin' header contains multiple values 'https://kanikayears.com, https://kanikayears.com', but only one is allowed`
+
+`curl` won't catch this — it doesn't enforce CORS — so this only surfaces once the browser makes the real request. `resp()` in `structured_query_lambda_function.py` returns `headers: {}` on every response for exactly this reason.
+
+### How dashboard.html Decides Which Path to Use
+
+```javascript
+var STRUCTURED_QUERY_ENDPOINT = "https://dohvyhfsuxvkp76tncjg3lnjuu0xcaxc.lambda-url.us-east-2.on.aws/";
+var STRUCTURED_QUERY_EXTENSIONS = ["csv", "txt", "xlsx", "xls"];
+```
+
+`askQuestion(key, question, chatHistory)` tries `STRUCTURED_QUERY_ENDPOINT` first for those extensions, and falls back to `CHAT_ENDPOINT` on any failure — used by Per File Chat and Ask Each File. Combined Answer always uses `CHAT_ENDPOINT` directly (see [How the AI Works](#how-the-ai-works) for why).
+
+Full step-by-step deployment walkthrough: `STRUCTURED_QUERY_SETUP.md`.
+
+---
+
 ## Firebase & EmailJS Setup
 
 ### Firebase
@@ -560,11 +714,13 @@ Template variables: `{{to_email}}` and `{{otp_code}}`. Public Key is safe to exp
 │
 ├── lambda_function.py           → s3-upload-lambda: pre-signed upload URLs
 ├── chat_lambda_function.py      → s3-chat: file chat, listing, SMS trigger, SMS conversations
+├── structured_query_lambda_function.py → structured-query: DuckDB SQL Q&A for CSV/TXT/Excel
 ├── sms_send_lambda.py           → sms-send: reads Excel, sends bill reminder SMS
 ├── sms_reply_lambda.py          → sms-reply: handles inbound SMS, GPT-5.5 reply
 │
 ├── cors_policy.json             → S3 bucket CORS configuration
 ├── sms_setup_guide.md           → Step-by-step SMS AWS setup reference
+├── STRUCTURED_QUERY_SETUP.md    → Step-by-step DuckDB structured-query AWS setup reference
 └── README.md                    → This file
 ```
 
@@ -586,14 +742,23 @@ Template variables: `{{to_email}}` and `{{otp_code}}`. Public Key is safe to exp
 | Patient SMS data | Stored only in DynamoDB (AWS-managed, encrypted at rest by default) |
 | SMS AI hallucination | Whitelist system prompt — AI can only answer from explicitly listed facts |
 | Patient data in SMS | Only patient's own name and balance sent to GPT-5.5 for their reply |
+| Structured-query SQL injection | LLM-generated SQL is checked against a keyword blocklist (no INSERT/UPDATE/DELETE/DROP/ATTACH/PRAGMA/etc.) and only the first statement is executed — no stacked queries |
+| Structured-query IAM scope | Dedicated role (`structured-query-role-sstga4p0`) with only `s3:GetObject` — no write access, no other AWS resources reachable |
 
 ---
 
 ## How to Change Things
 
-**Change the AI model (file chat or SMS):**
+**Change the AI model (file chat, SMS, or structured query):**
 - File chat: in `chat_lambda_function.py`, update `"model": "openai/gpt-5.5"` to any OpenRouter model. Redeploy s3-chat.
 - SMS replies: in `sms_reply_lambda.py`, same field. Redeploy sms-reply.
+- Structured query: update the `LLM_MODEL` env var on the `structured-query` Lambda — no code change needed.
+
+**Add more file types to the structured-query fast path:**
+- Currently CSV/TXT/XLSX/XLS only. Add the extension to `TABULAR_EXTENSIONS` and `STRUCTURED_QUERY_EXTENSIONS` (in `dashboard.html`), then add a loader branch in `structured_query_lambda_function.py` — DuckDB has no native reader for most other formats, so this usually means converting to CSV first, same as the Excel path.
+
+**Give Combined Answer real SQL joins across files:**
+- Not implemented — every selected file would need to be tabular and share a joinable column, and it can't help at all with mixed file types (PDF + CSV together). Currently Combined Answer always uses the full-text `/chat` path on purpose. Revisit only if cross-file structured questions become a frequent, all-tabular use case.
 
 **Add more information the SMS AI can answer:**
 - Open `sms_reply_lambda.py`
